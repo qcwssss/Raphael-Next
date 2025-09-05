@@ -87,6 +87,7 @@ function isValidImageHeader(buffer: Buffer): boolean {
  * Get file extension from filename
  */
 export function getFileExtension(filename: string): string {
+  if (!filename.includes('.')) return '';
   return filename.split('.').pop()?.toLowerCase() || '';
 }
 
