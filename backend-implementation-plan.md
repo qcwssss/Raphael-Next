@@ -50,7 +50,7 @@
 
 ## Implementation Phases
 
-### **Phase 1: Foundation & Database** (3 steps, 2-3 days)
+### **Phase 1: Foundation & Storage** (3 steps, 2-3 days)
 
 #### Step 1: Project Setup & Dependencies
 
@@ -109,7 +109,85 @@ lib/
     └── cost-calculator.ts
 ```
 
-#### Step 2: Database Schema & Models
+#### Step 2: Storage Module (Cloudflare R2)
+
+**Duration**: 4-6 hours
+
+**File Storage Utility** (`lib/storage/cloudflare-r2.ts`):
+
+```typescript
+import {
+  S3Client,
+  PutObjectCommand,
+  GetObjectCommand,
+  DeleteObjectCommand,
+} from "@aws-sdk/client-s3";
+
+export class CloudflareR2Storage {
+  private client: S3Client;
+
+  constructor() {
+    this.client = new S3Client({
+      region: "auto",
+      endpoint: `https://${process.env.CLOUDFLARE_R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+      credentials: {
+        accessKeyId: process.env.CLOUDFLARE_R2_ACCESS_KEY_ID!,
+        secretAccessKey: process.env.CLOUDFLARE_R2_SECRET_ACCESS_KEY!,
+      },
+    });
+  }
+
+  async uploadFile(
+    sessionId: string,
+    fileName: string,
+    fileBuffer: Buffer,
+    contentType: string
+  ): Promise<string> {
+    const key = `sessions/${sessionId}/${fileName}`;
+
+    await this.client.send(
+      new PutObjectCommand({
+        Bucket: process.env.CLOUDFLARE_R2_BUCKET_NAME,
+        Key: key,
+        Body: fileBuffer,
+        ContentType: contentType,
+        Metadata: {
+          uploadedAt: new Date().toISOString(),
+          sessionId: sessionId,
+        },
+      })
+    );
+
+    return key;
+  }
+
+  async getFileUrl(key: string): Promise<string> {
+    // Return signed URL for temporary access
+    return `https://${process.env.CLOUDFLARE_R2_BUCKET_NAME}.r2.dev/${key}`;
+  }
+
+  async deleteFile(key: string): Promise<void> {
+    await this.client.send(
+      new DeleteObjectCommand({
+        Bucket: process.env.CLOUDFLARE_R2_BUCKET_NAME,
+        Key: key,
+      })
+    );
+  }
+
+  async cleanupSessionFiles(sessionId: string): Promise<void> {
+    // Implementation for cleaning up all files in a session
+  }
+}
+```
+
+**Benefits of This Approach:**
+- ✅ Enables immediate frontend testing of file upload
+- ✅ No dependencies on database setup
+- ✅ Can validate R2 integration independently
+- ✅ Provides working upload endpoint for UI development
+
+#### Step 3: Database Schema & Models
 
 **Duration**: 6-8 hours
 
@@ -219,77 +297,7 @@ export interface AIProviderCost {
 }
 ```
 
-#### Step 3: Storage Module (Cloudflare R2)
-
-**Duration**: 4-6 hours
-
-**File Storage Utility** (`lib/storage/cloudflare-r2.ts`):
-
-```typescript
-import {
-  S3Client,
-  PutObjectCommand,
-  GetObjectCommand,
-  DeleteObjectCommand,
-} from "@aws-sdk/client-s3";
-
-export class CloudflareR2Storage {
-  private client: S3Client;
-
-  constructor() {
-    this.client = new S3Client({
-      region: "auto",
-      endpoint: `https://${process.env.CLOUDFLARE_R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
-      credentials: {
-        accessKeyId: process.env.CLOUDFLARE_R2_ACCESS_KEY_ID!,
-        secretAccessKey: process.env.CLOUDFLARE_R2_SECRET_ACCESS_KEY!,
-      },
-    });
-  }
-
-  async uploadFile(
-    sessionId: string,
-    fileName: string,
-    fileBuffer: Buffer,
-    contentType: string
-  ): Promise<string> {
-    const key = `sessions/${sessionId}/${fileName}`;
-
-    await this.client.send(
-      new PutObjectCommand({
-        Bucket: process.env.CLOUDFLARE_R2_BUCKET_NAME,
-        Key: key,
-        Body: fileBuffer,
-        ContentType: contentType,
-        Metadata: {
-          uploadedAt: new Date().toISOString(),
-          sessionId: sessionId,
-        },
-      })
-    );
-
-    return key;
-  }
-
-  async getFileUrl(key: string): Promise<string> {
-    // Return signed URL for temporary access
-    return `https://${process.env.CLOUDFLARE_R2_BUCKET_NAME}.r2.dev/${key}`;
-  }
-
-  async deleteFile(key: string): Promise<void> {
-    await this.client.send(
-      new DeleteObjectCommand({
-        Bucket: process.env.CLOUDFLARE_R2_BUCKET_NAME,
-        Key: key,
-      })
-    );
-  }
-
-  async cleanupSessionFiles(sessionId: string): Promise<void> {
-    // Implementation for cleaning up all files in a session
-  }
-}
-```
+**Now Database Schema with Storage Integration:**
 
 ---
 
@@ -2212,7 +2220,7 @@ MONTHLY_BUDGET_LIMIT=100
 
 ### **Total Implementation Time: 12-15 days**
 
-- **Phase 1**: Foundation & Database (2-3 days)
+- **Phase 1**: Foundation & Storage (2-3 days)
 - **Phase 2**: AI Provider Integration (3-4 days)
 - **Phase 3**: Core API Routes (4-5 days)
 - **Phase 4**: Advanced Features (3-4 days)
