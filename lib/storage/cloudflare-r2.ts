@@ -45,8 +45,9 @@ export class CloudflareR2Storage {
   }
 
   async getFileUrl(key: string): Promise<string> {
-    // Return signed URL for temporary access
-    return `https://${process.env.CLOUDFLARE_R2_BUCKET_NAME}.r2.dev/${key}`;
+    // Return URL through our API proxy for secure access
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    return `${baseUrl}/api/files/${key}`;
   }
 
   async deleteFile(key: string): Promise<void> {

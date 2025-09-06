@@ -32,6 +32,9 @@ export default function Home() {
   const [isDragging, setIsDragging] = useState<boolean>(false)
   const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false)
   const [currentLanguage, setCurrentLanguage] = useState<Language>('zh')
+  const [sessionId, setSessionId] = useState<string | null>(null)
+  const [isUploading, setIsUploading] = useState<boolean>(false)
+  const [uploadError, setUploadError] = useState<string | null>(null)
   
   const fileInputRef = useRef<HTMLInputElement>(null)
   const { t } = useTranslation(currentLanguage)
@@ -59,19 +62,55 @@ export default function Home() {
     }
   }, [])
 
-  const handleFileUpload = (file: File) => {
+  const handleFileUpload = async (file: File) => {
     if (file.size > 5 * 1024 * 1024) {
       alert(t('fileSizeError'))
       return
     }
 
-    setUploadedFile(file)
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      setUploadedImageUrl(e.target?.result as string)
-      setCurrentStep('styleSelect')
+    setIsUploading(true)
+    setUploadError(null)
+
+    try {
+      // Create FormData for upload
+      const formData = new FormData()
+      formData.append('file', file)
+
+      console.log('🚀 Uploading file to R2:', file.name)
+
+      const response = await fetch('/api/upload-simple', {
+        method: 'POST',
+        body: formData,
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        console.log('✅ Upload successful:', data)
+        
+        // Set the uploaded file info
+        setUploadedFile(file)
+        setSessionId(data.data.sessionId)
+        setUploadedImageUrl(data.data.fileUrl) // Use R2 URL instead of data URL
+        setCurrentStep('styleSelect')
+
+        // Update usage if available
+        if (data.data.usage) {
+          setDailyUsage(data.data.usage.remaining_generations || 5)
+        }
+      } else {
+        console.error('❌ Upload failed:', data.error)
+        setUploadError(data.error)
+        alert(`Upload failed: ${data.error}`)
+      }
+    } catch (error) {
+      console.error('❌ Upload error:', error)
+      const errorMessage = error instanceof Error ? error.message : 'Upload failed'
+      setUploadError(errorMessage)
+      alert(`Upload error: ${errorMessage}`)
+    } finally {
+      setIsUploading(false)
     }
-    reader.readAsDataURL(file)
   }
 
   const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -114,6 +153,9 @@ export default function Home() {
     setCustomPrompt('')
     setGenerationProgress(0)
     setResultImageUrl(null)
+    setSessionId(null)
+    setIsUploading(false)
+    setUploadError(null)
   }
 
   const remainingTime = Math.max(0, Math.ceil((100 - generationProgress) * 0.3))
@@ -247,25 +289,41 @@ export default function Home() {
               </div>
 
               <div
-                className={`glass-dark border-2 border-dashed rounded-3xl p-16 mb-12 transition-all duration-500 cursor-pointer group relative overflow-hidden ${
-                  isDragging
-                    ? 'border-purple-400 bg-purple-500/20 shadow-glow'
-                    : 'border-white/30 hover:border-purple-400 hover:bg-white/5 hover:shadow-glow-sm'
+                className={`glass-dark border-2 border-dashed rounded-3xl p-16 mb-12 transition-all duration-500 group relative overflow-hidden ${
+                  isUploading 
+                    ? 'border-blue-400 bg-blue-500/20 cursor-wait'
+                    : isDragging
+                    ? 'border-purple-400 bg-purple-500/20 shadow-glow cursor-pointer'
+                    : 'border-white/30 hover:border-purple-400 hover:bg-white/5 hover:shadow-glow-sm cursor-pointer'
                 }`}
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDrop}
-                onClick={() => fileInputRef.current?.click()}
+                onDragOver={isUploading ? undefined : handleDragOver}
+                onDragLeave={isUploading ? undefined : handleDragLeave}
+                onDrop={isUploading ? undefined : handleDrop}
+                onClick={isUploading ? undefined : () => fileInputRef.current?.click()}
               >
                 <div className="absolute inset-0 bg-gradient-primary opacity-5 group-hover:opacity-10 transition-opacity duration-500"></div>
                 <div className="relative z-10">
-                  <div className="text-8xl mb-6 animate-float">📸</div>
-                  <h3 className="text-2xl font-bold text-white mb-4 font-display">
-                    {t('uploadArea')}
-                  </h3>
-                  <p className="text-slate-300 text-lg">
-                    {t('uploadSupport')}
-                  </p>
+                  {isUploading ? (
+                    <>
+                      <div className="text-8xl mb-6 animate-pulse">⏳</div>
+                      <h3 className="text-2xl font-bold text-white mb-4 font-display">
+                        Uploading to R2...
+                      </h3>
+                      <p className="text-slate-300 text-lg">
+                        Please wait while we save your image
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <div className="text-8xl mb-6 animate-float">📸</div>
+                      <h3 className="text-2xl font-bold text-white mb-4 font-display">
+                        {t('uploadArea')}
+                      </h3>
+                      <p className="text-slate-300 text-lg">
+                        {t('uploadSupport')}
+                      </p>
+                    </>
+                  )}
                 </div>
                 <input
                   ref={fileInputRef}
@@ -275,6 +333,20 @@ export default function Home() {
                   onChange={handleFileInputChange}
                 />
               </div>
+
+              {/* Upload Error Display */}
+              {uploadError && (
+                <div className="bg-red-500/20 border border-red-400 rounded-2xl p-6 mb-8 text-center">
+                  <h3 className="text-red-400 font-bold text-lg mb-2">❌ Upload Failed</h3>
+                  <p className="text-red-300">{uploadError}</p>
+                  <button 
+                    onClick={() => setUploadError(null)}
+                    className="mt-4 text-red-400 hover:text-red-300 underline font-semibold"
+                  >
+                    Try Again
+                  </button>
+                </div>
+              )}
 
               <div className="flex flex-col sm:flex-row gap-6 justify-center">
                 <button className="bg-gradient-primary text-white px-10 py-4 rounded-2xl font-bold text-lg hover:shadow-glow transition-all duration-300 transform hover:scale-105 group">
