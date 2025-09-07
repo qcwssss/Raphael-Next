@@ -44,7 +44,7 @@ export class BFLProvider extends BaseAIProvider {
         description: 'Direct Black Forest Labs FLUX.1 [schnell] - fastest generation'
       },
       maxRetries: AI_CONFIG.DEFAULT_MAX_RETRIES,
-      timeoutMs: 300000, // 5 minutes timeout for polling (BFL requires longer timeout)
+      timeoutMs: AI_CONFIG.BFL_PROVIDER_TIMEOUT_MS,
       rateLimitPerMinute: 10
     };
 
@@ -91,7 +91,7 @@ export class BFLProvider extends BaseAIProvider {
 
       console.log(`📤 Submitting to BFL API: ${prompt.substring(0, 100)}...`);
 
-      const response = await fetch(`${this.baseUrl}/flux-pro-1.1`, {
+      const response = await fetch(`${this.baseUrl}/flux-schnell`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -169,8 +169,8 @@ export class BFLProvider extends BaseAIProvider {
     cost: number;
     error?: string;
   }> {
-    const maxAttempts = 60; // 5 minutes max (5s intervals)
-    const pollInterval = 5000; // 5 seconds
+    const maxAttempts = AI_CONFIG.BFL_POLL_MAX_ATTEMPTS;
+    const pollInterval = AI_CONFIG.BFL_POLL_INTERVAL_MS;
     
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
       try {

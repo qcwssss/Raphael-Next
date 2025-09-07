@@ -3,6 +3,7 @@ import { PollinationsProvider } from './pollinations-provider';
 import { HuggingFaceProvider } from './huggingface-provider';
 import { FluxProvider } from './flux-provider';
 import { BFLProvider } from './bfl-provider';
+import { AI_CONFIG } from '../config/constants';
 
 export interface ProviderSelection {
   provider: BaseAIProvider;
@@ -21,7 +22,7 @@ export interface GenerationOptions {
 export class AIProviderManager {
   private providers: BaseAIProvider[] = [];
   private healthCache: Map<string, { status: any; timestamp: number }> = new Map();
-  private readonly healthCacheTtl = 60000; // 1 minute
+  private readonly healthCacheTtl = AI_CONFIG.HEALTH_CACHE_TTL_MS;
 
   constructor() {
     this.initializeProviders();
@@ -192,21 +193,43 @@ export class AIProviderManager {
     return await selection.provider.generateImage(request);
   }
 
+  private activeHealthChecks: Map<string, Promise<any>> = new Map();
+
   /**
-   * Get health status for a provider (with caching)
+   * Get health status for a provider (with caching and race condition prevention)
    */
   async getProviderHealth(provider: BaseAIProvider): Promise<any> {
     const cacheKey = provider.providerName;
     const cached = this.healthCache.get(cacheKey);
     
+    // Return cached result if still valid
     if (cached && Date.now() - cached.timestamp < this.healthCacheTtl) {
       return cached.status;
     }
 
-    const health = await provider.getHealthStatus();
-    this.healthCache.set(cacheKey, { status: health, timestamp: Date.now() });
-    
-    return health;
+    // Check if there's already an active health check for this provider
+    const activeCheck = this.activeHealthChecks.get(cacheKey);
+    if (activeCheck) {
+      // Wait for the existing check to complete
+      return await activeCheck;
+    }
+
+    // Start a new health check
+    const healthCheckPromise = this.performHealthCheck(provider, cacheKey);
+    this.activeHealthChecks.set(cacheKey, healthCheckPromise);
+
+    try {
+      const health = await healthCheckPromise;
+      this.healthCache.set(cacheKey, { status: health, timestamp: Date.now() });
+      return health;
+    } finally {
+      // Clean up the active check
+      this.activeHealthChecks.delete(cacheKey);
+    }
+  }
+
+  private async performHealthCheck(provider: BaseAIProvider, cacheKey: string): Promise<any> {
+    return await provider.getHealthStatus();
   }
 
   /**

@@ -9,6 +9,7 @@ export const AI_CONFIG = {
   
   // Provider timeouts
   PROVIDER_TIMEOUT_MS: 60000, // 1 minute
+  BFL_PROVIDER_TIMEOUT_MS: 300000, // 5 minutes (for BFL polling)
   HEALTH_CHECK_TIMEOUT_MS: 10000, // 10 seconds
   
   // Caching
@@ -23,6 +24,13 @@ export const AI_CONFIG = {
   
   // Retry settings
   DEFAULT_MAX_RETRIES: 3,
+  
+  // Polling settings
+  BFL_POLL_MAX_ATTEMPTS: 60, // 5 minutes max (5s intervals)
+  BFL_POLL_INTERVAL_MS: 5000, // 5 seconds
+  
+  // Health check settings
+  HEALTH_CHECK_CACHE_CLEANUP_INTERVAL_MS: 5 * 60 * 1000, // 5 minutes
 } as const;
 
 // Error messages

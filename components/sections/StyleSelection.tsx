@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { styleManager, StyleOption, CustomStyle } from "../../utils/styleManager";
 import CustomStyleCreator from "../ui/CustomStyleCreator";
 
@@ -29,6 +29,11 @@ export default function StyleSelection({
     // Load custom styles from localStorage and get all styles
     styleManager.loadCustomStyles();
     setStyleOptions(styleManager.getAllStyles(t));
+    
+    // Cleanup function to prevent memory leaks
+    return () => {
+      // Any cleanup logic if needed
+    };
   }, [t]);
 
   const categories = styleManager.getCategories();
@@ -42,7 +47,11 @@ export default function StyleSelection({
 
   const handleDeleteCustomStyle = (styleId: string) => {
     if (styleId.startsWith('custom-')) {
-      if (confirm('Are you sure you want to delete this custom style?')) {
+      // Use a more user-friendly confirmation
+      const customStyle = styleOptions.find(s => s.id === styleId);
+      const confirmDelete = window.confirm(`Are you sure you want to delete "${customStyle?.name || 'this style'}"? This action cannot be undone.`);
+      
+      if (confirmDelete) {
         styleManager.removeCustomStyle(styleId);
         setStyleOptions(styleManager.getAllStyles(t));
         if (selectedStyle === styleId) {
@@ -52,9 +61,12 @@ export default function StyleSelection({
     }
   };
 
-  const filteredStyles = selectedCategory === "all" 
-    ? styleOptions
-    : styleOptions.filter(style => style.category === selectedCategory);
+  // Use useMemo to optimize filtering and prevent unnecessary re-renders
+  const filteredStyles = useMemo(() => {
+    return selectedCategory === "all" 
+      ? styleOptions
+      : styleOptions.filter(style => style.category === selectedCategory);
+  }, [styleOptions, selectedCategory]);
 
   return (
     <div className="max-w-7xl mx-auto">

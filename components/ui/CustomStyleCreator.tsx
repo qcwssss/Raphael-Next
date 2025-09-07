@@ -1,6 +1,14 @@
 import { useState } from "react";
 import { styleManager, CustomStyle } from "../../utils/styleManager";
 
+// Utility function to sanitize user input
+function sanitizeInput(input: string): string {
+  return input
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+    .replace(/<[^>]*>/g, '')
+    .trim();
+}
+
 interface CustomStyleCreatorProps {
   onStyleCreated: (style: CustomStyle) => void;
   onCancel: () => void;
@@ -19,30 +27,33 @@ export default function CustomStyleCreator({
     prompt: ""
   });
   const [isCreating, setIsCreating] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const config = styleManager.getCustomStyleConfig();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrorMessage(null);
     
     if (!formData.name.trim() || !formData.prompt.trim()) {
-      alert("Name and prompt are required");
+      setErrorMessage("Name and prompt are required");
       return;
     }
 
     if (formData.prompt.length > config.maxPromptLength) {
-      alert(`Prompt must be less than ${config.maxPromptLength} characters`);
+      setErrorMessage(`Prompt must be less than ${config.maxPromptLength} characters`);
       return;
     }
 
     setIsCreating(true);
     
     try {
+      // Sanitize all inputs to prevent XSS
       const newStyle = styleManager.addCustomStyle({
-        name: formData.name.trim(),
+        name: sanitizeInput(formData.name.trim()),
         emoji: formData.emoji || config.defaultEmoji,
-        description: formData.description.trim(),
-        prompt: formData.prompt.trim()
+        description: sanitizeInput(formData.description.trim()),
+        prompt: sanitizeInput(formData.prompt.trim())
       });
 
       onStyleCreated(newStyle);
@@ -56,7 +67,7 @@ export default function CustomStyleCreator({
       });
     } catch (error) {
       console.error("Failed to create custom style:", error);
-      alert("Failed to create style. Please try again.");
+      setErrorMessage("Failed to create style. Please try again.");
     } finally {
       setIsCreating(false);
     }
@@ -79,6 +90,12 @@ export default function CustomStyleCreator({
         </h2>
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Error Message */}
+          {errorMessage && (
+            <div className="bg-red-500/20 border border-red-500/50 rounded-2xl p-4 text-red-200">
+              {errorMessage}
+            </div>
+          )}
           {/* Name Field */}
           <div>
             <label className="block text-lg font-semibold text-white mb-3">

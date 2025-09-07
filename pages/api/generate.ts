@@ -4,6 +4,7 @@ import { aiProviderManager } from "../../lib/ai-providers/provider-manager";
 import { validateEnvironmentVariables } from "../../lib/utils/validation";
 import { styleManager } from "../../utils/styleManager";
 import { AI_CONFIG } from "../../lib/config/constants";
+import { withApiProtection } from "../../lib/middleware/api-protection";
 
 const storage = new CloudflareR2Storage();
 
@@ -32,7 +33,7 @@ interface GenerateResponse {
   details?: any;
 }
 
-export default async function handler(
+async function generateHandler(
   req: NextApiRequest,
   res: NextApiResponse<GenerateResponse>
 ) {
@@ -271,6 +272,12 @@ export default async function handler(
     });
   }
 }
+
+// Apply API protection (rate limiting and optional authentication)
+export default withApiProtection(generateHandler, {
+  requireApiKey: process.env.NODE_ENV === 'production', // Require API key in production
+  rateLimitPerMinute: 10 // Lower limit for image generation
+});
 
 // Export configuration to handle larger payloads if needed
 export const config = {
