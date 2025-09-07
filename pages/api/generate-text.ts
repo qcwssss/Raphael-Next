@@ -8,7 +8,7 @@ interface GenerateTextRequest {
     noStyle?: boolean;
     noColor?: boolean;
     noLighting?: boolean;
-    shotFromBelow?: boolean;
+    noComposition?: boolean;
     negativePrompt?: boolean;
     highQuality?: boolean;
   };
@@ -71,8 +71,8 @@ export default async function handler(
     if (options.highQuality) {
       modifiers.push('high quality', 'detailed', '8k resolution', 'masterpiece');
     }
-    if (options.shotFromBelow) {
-      modifiers.push('shot from below', 'low angle view');
+    if (options.noComposition) {
+      modifiers.push('simple composition', 'minimal composition');
     }
     if (!options.noStyle) {
       modifiers.push('artistic style');

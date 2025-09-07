@@ -5,7 +5,7 @@ export interface GenerationOptions {
   noStyle: boolean;
   noColor: boolean;
   noLighting: boolean;
-  shotFromBelow: boolean;
+  noComposition: boolean;
   negativePrompt: boolean;
   highQuality: boolean;
 }
@@ -33,8 +33,6 @@ export default function TextToImageGenerator({
   isGenerating,
   t,
 }: TextToImageGeneratorProps) {
-  const [isEditing, setIsEditing] = useState(false);
-
   const handleOptionToggle = (option: keyof GenerationOptions) => {
     setSelectedOptions({
       ...selectedOptions,
@@ -48,114 +46,133 @@ export default function TextToImageGenerator({
 
   return (
     <div className="max-w-4xl mx-auto">
-      {/* Main Generator Container - Make prompt the centerpiece */}
-      <div className="glass-dark border border-white/20 rounded-3xl p-8">
-        {/* Large, Prominent Description Prompt */}
-        <div className="mb-8">
-          <div className="text-center mb-6">
-            <h2 className="text-2xl font-bold text-white mb-2">AI Image Generator</h2>
-            <p className="text-slate-400">Describe what you want to create</p>
-          </div>
-          
-          <div className="relative">
-            <textarea
-              value={prompt}
-              onChange={handlePromptChange}
-              placeholder="A fairy in a blue dress, waving a magic wand, surrounded by sparkling stars."
-              className="w-full h-40 p-6 glass-dark border-2 border-white/30 rounded-3xl focus:ring-4 focus:ring-purple-500/50 focus:border-purple-400 text-white placeholder-slate-400 bg-transparent resize-none text-xl leading-relaxed font-medium shadow-lg"
-              disabled={isGenerating}
-              style={{ fontSize: '18px', lineHeight: '1.6' }}
-            />
-            <div className="absolute top-4 right-4 flex gap-2">
-              <button className="p-2 glass-dark border border-white/20 rounded-lg hover:border-white/40 transition-colors">
-                <svg className="w-5 h-5 text-green-400" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                </svg>
-              </button>
-              <button className="p-2 glass-dark border border-white/20 rounded-lg hover:border-white/40 transition-colors">
-                <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Compact Auxiliary Options */}
-        <div className="mb-6">
-          <div className="flex items-center justify-center mb-4">
-            <button 
-              className="text-xs text-slate-500 hover:text-slate-300 transition-colors flex items-center gap-1"
-              onClick={() => setIsEditing(!isEditing)}
-            >
-              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+      {/* Clean Main Container */}
+      <div className="bg-gray-800 rounded-2xl p-8">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-3xl font-semibold text-white">AI Image Generator</h2>
+            <button className="p-2 text-gray-400 hover:text-white transition-colors">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
               </svg>
-              Advanced options
             </button>
           </div>
-          
-          {/* Collapsible Options */}
-          <div className={`transition-all duration-300 overflow-hidden ${isEditing ? 'max-h-40 opacity-100' : 'max-h-0 opacity-0'}`}>
-            <div className="flex flex-wrap justify-center gap-2 p-4 bg-black/20 rounded-xl border border-white/10">
-              <button
-                onClick={() => handleOptionToggle('squareAspect')}
-                className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs transition-all ${
-                  selectedOptions.squareAspect
-                    ? 'bg-white/20 text-white border border-white/40'
-                    : 'text-slate-500 hover:text-slate-300'
-                }`}
-              >
-                <div className={`w-3 h-3 border rounded ${selectedOptions.squareAspect ? 'border-white bg-white' : 'border-slate-500'}`}>
-                  {selectedOptions.squareAspect && (
-                    <svg className="w-2 h-2 text-dark-900" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                    </svg>
-                  )}
-                </div>
-                Square
-              </button>
-
-              <button className="px-2 py-1 text-xs text-slate-500 hover:text-slate-300 rounded-lg transition-colors">
-                No Style
-              </button>
-
-              <button className="px-2 py-1 text-xs text-slate-500 hover:text-slate-300 rounded-lg transition-colors">
-                No Color
-              </button>
-
-              <button className="px-2 py-1 text-xs text-slate-500 hover:text-slate-300 rounded-lg transition-colors">
-                No Lighting
-              </button>
-
-              <button className="px-2 py-1 text-xs text-slate-500 hover:text-slate-300 rounded-lg transition-colors">
-                Shot From Below
-              </button>
-
-              <button className="px-2 py-1 text-xs text-slate-500 hover:text-slate-300 rounded-lg transition-colors">
-                Negative Prompt
-              </button>
-
-              <button className="px-2 py-1 text-xs text-slate-500 hover:text-slate-300 rounded-lg transition-colors">
-                High Quality
-              </button>
-            </div>
-          </div>
         </div>
 
-        {/* Action Buttons */}
+        {/* Clean Description Prompt */}
+        <div className="mb-8">
+          <label className="block text-lg font-medium text-gray-300 mb-4">
+            Description prompt
+          </label>
+          <textarea
+            value={prompt}
+            onChange={handlePromptChange}
+            placeholder="What do you want to see?"
+            className="w-full h-32 p-4 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white placeholder-gray-400 resize-none text-base leading-relaxed"
+            disabled={isGenerating}
+          />
+        </div>
+
+        {/* Clean Options Row 1 */}
+        <div className="flex flex-wrap items-center gap-6 mb-6">
+          <label className="flex items-center cursor-pointer">
+            <input
+              type="checkbox"
+              checked={selectedOptions.squareAspect}
+              onChange={() => handleOptionToggle('squareAspect')}
+              className="w-4 h-4 text-blue-600 bg-gray-700 border-gray-500 rounded focus:ring-blue-500 focus:ring-2"
+              disabled={isGenerating}
+            />
+            <span className="ml-2 text-gray-300 font-medium">Square Aspect</span>
+          </label>
+
+          <button
+            onClick={() => handleOptionToggle('noStyle')}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              selectedOptions.noStyle
+                ? 'bg-gray-600 text-white'
+                : 'text-gray-400 hover:text-gray-300'
+            }`}
+            disabled={isGenerating}
+          >
+            No Style
+          </button>
+
+          <button
+            onClick={() => handleOptionToggle('noColor')}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              selectedOptions.noColor
+                ? 'bg-gray-600 text-white'
+                : 'text-gray-400 hover:text-gray-300'
+            }`}
+            disabled={isGenerating}
+          >
+            No Color
+          </button>
+
+          <button
+            onClick={() => handleOptionToggle('noLighting')}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              selectedOptions.noLighting
+                ? 'bg-gray-600 text-white'
+                : 'text-gray-400 hover:text-gray-300'
+            }`}
+            disabled={isGenerating}
+          >
+            No Lighting
+          </button>
+
+          <button
+            onClick={() => handleOptionToggle('noComposition')}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              selectedOptions.noComposition
+                ? 'bg-gray-600 text-white'
+                : 'text-gray-400 hover:text-gray-300'
+            }`}
+            disabled={isGenerating}
+          >
+            No Composition
+          </button>
+        </div>
+
+        {/* Clean Options Row 2 */}
+        <div className="flex items-center gap-8 mb-8">
+          <label className="flex items-center cursor-pointer">
+            <input
+              type="radio"
+              checked={selectedOptions.negativePrompt}
+              onChange={() => handleOptionToggle('negativePrompt')}
+              className="w-4 h-4 text-blue-600 bg-gray-700 border-gray-500 focus:ring-blue-500 focus:ring-2"
+              disabled={isGenerating}
+            />
+            <span className="ml-2 text-gray-300 font-medium">Negative Prompt</span>
+          </label>
+
+          <label className="flex items-center cursor-pointer">
+            <input
+              type="radio"
+              checked={selectedOptions.highQuality}
+              onChange={() => handleOptionToggle('highQuality')}
+              className="w-4 h-4 text-blue-600 bg-gray-700 border-gray-500 focus:ring-blue-500 focus:ring-2"
+              disabled={isGenerating}
+            />
+            <span className="ml-2 text-gray-300 font-medium">High Quality</span>
+          </label>
+        </div>
+
+        {/* Clean Action Buttons */}
         <div className="flex gap-4">
           <button
             onClick={onClear}
-            className="flex-1 py-4 glass-dark border border-white/30 text-white rounded-2xl font-semibold text-lg hover:bg-white/10 hover:border-white/50 transition-all duration-300"
+            className="px-6 py-3 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-medium transition-colors"
             disabled={isGenerating}
           >
             Clear
           </button>
           <button
             onClick={onRandom}
-            className="flex-1 py-4 glass-dark border border-white/30 text-white rounded-2xl font-semibold text-lg hover:bg-white/10 hover:border-white/50 transition-all duration-300"
+            className="px-6 py-3 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-medium transition-colors"
             disabled={isGenerating}
           >
             Random
@@ -163,25 +180,20 @@ export default function TextToImageGenerator({
           <button
             onClick={onGenerate}
             disabled={isGenerating || !prompt.trim()}
-            className={`flex-2 py-4 px-8 rounded-2xl font-bold text-lg transition-all duration-300 ${
+            className={`flex-1 px-6 py-3 rounded-lg font-medium transition-colors ${
               isGenerating || !prompt.trim()
-                ? 'glass-dark border border-white/20 text-slate-400 cursor-not-allowed'
-                : 'bg-gradient-primary text-white hover:shadow-glow transform hover:scale-105'
+                ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                : 'bg-amber-600 hover:bg-amber-700 text-white'
             }`}
           >
-            <div className="flex items-center justify-center gap-3">
-              {isGenerating ? (
-                <>
-                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                  Generating...
-                </>
-              ) : (
-                <>
-                  <span className="text-xl">⚡</span>
-                  Generate
-                </>
-              )}
-            </div>
+            {isGenerating ? (
+              <div className="flex items-center justify-center gap-2">
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                Generating...
+              </div>
+            ) : (
+              'Generate'
+            )}
           </button>
         </div>
       </div>
@@ -189,10 +201,10 @@ export default function TextToImageGenerator({
       {/* Generation Info */}
       {prompt && (
         <div className="mt-4 text-center">
-          <p className="text-sm text-slate-400">
-            Generate: {prompt.substring(0, 100)}{prompt.length > 100 ? '...' : ''} (Shot From Below)
+          <p className="text-sm text-gray-400">
+            Generate: {prompt.substring(0, 100)}{prompt.length > 100 ? '...' : ''}
           </p>
-          <p className="text-xs text-slate-500 mt-1">
+          <p className="text-xs text-gray-500 mt-1">
             {new Date().toLocaleString('en-US', { 
               year: 'numeric', 
               month: '2-digit', 

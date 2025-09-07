@@ -16,7 +16,7 @@ export function useTextToImage() {
     noStyle: false,
     noColor: false,
     noLighting: false,
-    shotFromBelow: false,
+    noComposition: false,
     negativePrompt: false,
     highQuality: false,
   });
@@ -116,7 +116,7 @@ export function useTextToImage() {
       console.error('Generation failed:', error);
       
       // Show error state
-      const errorResults: GenerationResult[] = generationResults.map(result => ({
+      const errorResults: GenerationResult[] = initialResults.map(result => ({
         ...result,
         status: 'error' as const,
       }));
@@ -135,7 +135,7 @@ export function useTextToImage() {
         setGenerationProgress(100);
       }, 1000);
     }
-  }, [prompt, selectedOptions, isGenerating, generationResults]);
+  }, [prompt, selectedOptions, isGenerating]);
 
   const handleClear = useCallback(() => {
     setPrompt("");
