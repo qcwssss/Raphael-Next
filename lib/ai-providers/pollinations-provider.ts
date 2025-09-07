@@ -142,7 +142,7 @@ export class PollinationsProvider extends BaseAIProvider {
           success: false,
           error: `Pollinations API error: ${response.status} ${response.statusText} - ${errorDetails}`,
           provider: this.providerName,
-          model: inputImageBuffer ? "kontext" : "flux",
+          model: request.inputImageUrl ? "kontext" : "flux",
           processingTimeMs: Date.now() - startTime,
           cost: 0,
         };
