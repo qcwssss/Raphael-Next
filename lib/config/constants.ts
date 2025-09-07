@@ -52,5 +52,7 @@ export const TRUSTED_IMAGE_DOMAINS = [
   'replicate.delivery',
   'pbxt.replicate.delivery',
   'storage.googleapis.com',
+  'code-leonardo-uploads.281d2b41f8e464fb5019cbb26a17aecf.r2.cloudflarestorage.com', // Cloudflare R2 domain
+  'localhost', // For development
   // Add more trusted domains as needed
 ] as const;
