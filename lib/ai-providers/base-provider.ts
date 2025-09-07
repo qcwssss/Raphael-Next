@@ -57,20 +57,24 @@ export abstract class BaseAIProvider {
   /**
    * Build the prompt for the specific style
    */
-  protected buildPrompt(style: string, customPrompt?: string): string {
+  protected buildPrompt(style: string, customPrompt?: string, isTextToImage: boolean = false): string {
     // For custom styles, the customPrompt IS the style description
     if (style === 'custom') {
-      return customPrompt || 'artistic style transformation, high quality, detailed';
+      return customPrompt || (isTextToImage ? 'high quality, detailed artwork' : 'artistic style transformation, high quality, detailed');
     }
 
     // Load style prompts from configuration
     const basePrompt = this.getStylePrompt(style);
     
     if (customPrompt) {
-      return `${customPrompt}, ${basePrompt}`;
+      return isTextToImage 
+        ? `${customPrompt}, ${basePrompt}`
+        : `${customPrompt}, ${basePrompt}`;
     }
 
-    return `Transform this image ${basePrompt}, high quality, detailed`;
+    return isTextToImage 
+      ? `${basePrompt}, high quality, detailed`
+      : `Transform this image ${basePrompt}, high quality, detailed`;
   }
 
   /**

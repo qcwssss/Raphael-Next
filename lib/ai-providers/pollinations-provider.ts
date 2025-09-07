@@ -49,8 +49,10 @@ export class PollinationsProvider extends BaseAIProvider {
     const startTime = Date.now();
 
     try {
+      const isTextToImage = !request.inputImageUrl || request.inputImageUrl.trim() === '';
+      
       console.log(
-        `🌸 Starting Pollinations img2img generation with style: ${request.style}`
+        `🌸 Starting Pollinations ${isTextToImage ? 'text2img' : 'img2img'} generation with style: ${request.style}`
       );
 
       // Validate input image URL if provided
@@ -61,14 +63,14 @@ export class PollinationsProvider extends BaseAIProvider {
             success: false,
             error: `Invalid input image URL: ${urlValidation.error}`,
             provider: this.providerName,
-            model: "kontext",
+            model: isTextToImage ? "flux" : "kontext",
             processingTimeMs: Date.now() - startTime,
             cost: 0,
           };
         }
       }
 
-      const prompt = this.buildPrompt(request.style, request.customPrompt);
+      const prompt = this.buildPrompt(request.style, request.customPrompt, isTextToImage);
       const enhancedPrompt = this.enhancePrompt(prompt);
 
       console.log(
@@ -97,13 +99,17 @@ export class PollinationsProvider extends BaseAIProvider {
         console.warn(`⚠️ Cannot access input image URL:`, error);
       }
 
-      // Build URL with image parameter for image-to-image transformation using Kontext model
+      // Build URL parameters based on generation type
       const params = new URLSearchParams({
         width: AI_CONFIG.DEFAULT_IMAGE_WIDTH.toString(),
         height: AI_CONFIG.DEFAULT_IMAGE_HEIGHT.toString(),
-        model: 'kontext', // Kontext model for image-to-image transformation
-        image: request.inputImageUrl // Input image URL for transformation
+        model: isTextToImage ? 'flux' : 'kontext', // Flux for text-to-image, Kontext for image-to-image
       });
+      
+      // Add image parameter only for image-to-image transformation
+      if (!isTextToImage && request.inputImageUrl) {
+        params.set('image', request.inputImageUrl);
+      }
       
       const imageUrl = `${this.baseUrl}/${encodeURIComponent(enhancedPrompt)}?${params.toString()}`;
       
@@ -112,8 +118,8 @@ export class PollinationsProvider extends BaseAIProvider {
         prompt: enhancedPrompt,
         width: AI_CONFIG.DEFAULT_IMAGE_WIDTH,
         height: AI_CONFIG.DEFAULT_IMAGE_HEIGHT,
-        model: 'kontext',
-        inputImageUrl: request.inputImageUrl
+        model: isTextToImage ? 'flux' : 'kontext',
+        ...(isTextToImage ? {} : { inputImageUrl: request.inputImageUrl })
       });
       
       // Log the raw parameters for debugging
@@ -200,7 +206,7 @@ export class PollinationsProvider extends BaseAIProvider {
         success: true,
         generatedImageUrl,
         provider: this.providerName,
-        model: "kontext",
+        model: isTextToImage ? "flux" : "kontext",
         processingTimeMs: Date.now() - startTime,
         cost: 0, // Free!
       };
@@ -210,7 +216,7 @@ export class PollinationsProvider extends BaseAIProvider {
         success: false,
         error: error instanceof Error ? error.message : "Unknown error",
         provider: this.providerName,
-        model: "kontext",
+        model: "flux", // Default to flux for error cases
         processingTimeMs: Date.now() - startTime,
         cost: 0,
       };
