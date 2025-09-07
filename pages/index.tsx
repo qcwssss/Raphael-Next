@@ -11,7 +11,7 @@ import GenerationGrid from "../components/ui/GenerationGrid";
 export default function Home() {
   const [currentLanguage, setCurrentLanguage] = useState<Language>("zh");
   const { t } = useTranslation(currentLanguage);
-  
+
   const {
     prompt,
     setPrompt,
@@ -28,10 +28,11 @@ export default function Home() {
   return (
     <>
       <Head>
-        <title>
-          {t("brandName")} - AI Image Generator
-        </title>
-        <meta name="description" content="Create stunning AI-generated images in seconds. World's First Unlimited Free AI Image Generator." />
+        <title>{t("brandName")} - AI Image Generator</title>
+        <meta
+          name="description"
+          content="Create stunning AI-generated images in seconds. World's First Unlimited Free AI Image Generator."
+        />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
@@ -94,8 +95,13 @@ export default function Home() {
               <div className="flex items-center gap-3">
                 <div className="text-2xl">⭐</div>
                 <div>
-                  <div className="text-amber-400 font-semibold">You're using the Free Plan</div>
-                  <div className="text-sm text-slate-300">Upgrade to Premium for 5x faster speed, better quality & ad-free experience</div>
+                  <div className="text-amber-400 font-semibold">
+                    You are using the Free Plan
+                  </div>
+                  <div className="text-sm text-slate-300">
+                    Upgrade to Premium for 5x faster speed, better quality &
+                    ad-free experience
+                  </div>
                 </div>
               </div>
               <button className="bg-gradient-primary hover:shadow-glow transform hover:scale-105 transition-all duration-300 text-white font-bold py-3 px-6 rounded-xl">
