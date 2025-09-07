@@ -4,6 +4,9 @@ import { HuggingFaceProvider } from './huggingface-provider';
 import { FluxProvider } from './flux-provider';
 import { BFLProvider } from './bfl-provider';
 import { AI_CONFIG } from '../config/constants';
+import { HealthCacheEntry, HealthStatus, ProviderMetrics, GenerationMetrics, EnvironmentConfig, ValidationResult } from './interfaces';
+import { validateEnvironment, logEnvironmentStatus } from '../config/env-validation';
+import { withProviderTimeout, CircuitBreaker, debounce } from '../utils/timeout-wrapper';
 
 export interface ProviderSelection {
   provider: BaseAIProvider;
@@ -21,8 +24,10 @@ export interface GenerationOptions {
 
 export class AIProviderManager {
   private providers: BaseAIProvider[] = [];
-  private healthCache: Map<string, { status: any; timestamp: number }> = new Map();
+  private healthCache: Map<string, HealthCacheEntry> = new Map();
   private readonly healthCacheTtl = AI_CONFIG.HEALTH_CACHE_TTL_MS;
+  private circuitBreakers: Map<string, CircuitBreaker<any>> = new Map();
+  private activeHealthChecks: Map<string, Promise<HealthStatus>> = new Map();
 
   constructor() {
     this.initializeProviders();
@@ -30,6 +35,16 @@ export class AIProviderManager {
 
   private initializeProviders(): void {
     try {
+      // Validate environment configuration first
+      const envValidation = validateEnvironment();
+      if (!envValidation.isValid) {
+        console.error('❌ Environment validation failed:', envValidation.errors);
+        throw new Error(`Environment validation failed: ${envValidation.errors.join(', ')}`);
+      }
+      
+      // Log environment status for debugging
+      logEnvironmentStatus();
+      
       // Initialize providers - prioritize free Pollinations first
       
       // Pollinations as primary free provider (no API key needed)
