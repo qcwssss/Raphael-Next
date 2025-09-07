@@ -5,6 +5,7 @@ import {
   AIProviderConfig,
 } from "./base-provider";
 import { CloudflareR2Storage } from "../storage/cloudflare-r2";
+import { AI_CONFIG } from "../config/constants";
 
 export class HuggingFaceProvider extends BaseAIProvider {
   private apiKey: string;
@@ -26,8 +27,8 @@ export class HuggingFaceProvider extends BaseAIProvider {
         description:
           "Free image-to-image transformation via Hugging Face Inference API",
       },
-      maxRetries: 3,
-      timeoutMs: 120000, // 2 minutes timeout (HF can be slow on free tier)
+      maxRetries: AI_CONFIG.DEFAULT_MAX_RETRIES,
+      timeoutMs: AI_CONFIG.MAX_GENERATION_TIME_SECONDS * 1000,
       rateLimitPerMinute: 30, // Conservative for free tier
     };
 

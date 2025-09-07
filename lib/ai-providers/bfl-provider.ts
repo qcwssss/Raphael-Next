@@ -6,6 +6,7 @@ import {
   AIProviderConfig
 } from './base-provider';
 import { CloudflareR2Storage } from '../storage/cloudflare-r2';
+import { AI_CONFIG } from '../config/constants';
 
 interface BFLGenerationRequest {
   prompt: string;
@@ -42,8 +43,8 @@ export class BFLProvider extends BaseAIProvider {
         enabled: true,
         description: 'Direct Black Forest Labs FLUX.1 [schnell] - fastest generation'
       },
-      maxRetries: 3,
-      timeoutMs: 300000, // 5 minutes timeout for polling
+      maxRetries: AI_CONFIG.DEFAULT_MAX_RETRIES,
+      timeoutMs: 300000, // 5 minutes timeout for polling (BFL requires longer timeout)
       rateLimitPerMinute: 10
     };
 
@@ -82,8 +83,8 @@ export class BFLProvider extends BaseAIProvider {
       // Submit generation request
       const requestPayload: BFLGenerationRequest = {
         prompt,
-        width: 1024,
-        height: 1024,
+        width: AI_CONFIG.DEFAULT_IMAGE_WIDTH,
+        height: AI_CONFIG.DEFAULT_IMAGE_HEIGHT,
         prompt_upsampling: false,
         output_format: 'jpeg',
       };

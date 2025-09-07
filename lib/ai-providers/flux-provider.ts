@@ -1,5 +1,6 @@
 import Replicate from 'replicate';
 import { BaseAIProvider, AIGenerationRequest, AIGenerationResponse, AIProviderConfig, AIProviderError } from './base-provider';
+import { AI_CONFIG } from '../config/constants';
 
 export class FluxProvider extends BaseAIProvider {
   private replicate: Replicate;
@@ -16,8 +17,8 @@ export class FluxProvider extends BaseAIProvider {
         enabled: true,
         description: 'Fast FLUX.1 [schnell] model optimized for quick results'
       },
-      maxRetries: 3,
-      timeoutMs: 120000, // 2 minutes timeout
+      maxRetries: AI_CONFIG.DEFAULT_MAX_RETRIES,
+      timeoutMs: AI_CONFIG.MAX_GENERATION_TIME_SECONDS * 1000,
       rateLimitPerMinute: 10
     };
 

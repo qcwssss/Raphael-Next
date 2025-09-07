@@ -5,6 +5,8 @@ import {
   AIProviderConfig,
 } from "./base-provider";
 import { CloudflareR2Storage } from "../storage/cloudflare-r2";
+import { AI_CONFIG } from "../config/constants";
+import { validateImageUrl } from "../utils/url-validation";
 
 export class PollinationsProvider extends BaseAIProvider {
   private apiKey: string;
@@ -23,9 +25,9 @@ export class PollinationsProvider extends BaseAIProvider {
         description:
           "Image-to-image transformation via Pollinations.ai Kontext model - may require Seed tier",
       },
-      maxRetries: 3,
-      timeoutMs: 60000, // 1 minute timeout
-      rateLimitPerMinute: 60, // Conservative estimate
+      maxRetries: AI_CONFIG.DEFAULT_MAX_RETRIES,
+      timeoutMs: AI_CONFIG.PROVIDER_TIMEOUT_MS,
+      rateLimitPerMinute: AI_CONFIG.DEFAULT_RATE_LIMIT_PER_MINUTE,
     };
 
     super(config);
@@ -50,6 +52,21 @@ export class PollinationsProvider extends BaseAIProvider {
       console.log(
         `🌸 Starting Pollinations img2img generation with style: ${request.style}`
       );
+
+      // Validate input image URL if provided
+      if (request.inputImageUrl) {
+        const urlValidation = validateImageUrl(request.inputImageUrl);
+        if (!urlValidation.isValid) {
+          return {
+            success: false,
+            error: `Invalid input image URL: ${urlValidation.error}`,
+            provider: this.providerName,
+            model: "kontext",
+            processingTimeMs: Date.now() - startTime,
+            cost: 0,
+          };
+        }
+      }
 
       const prompt = this.buildPrompt(request.style, request.customPrompt);
       const enhancedPrompt = this.enhancePrompt(prompt);
@@ -82,8 +99,8 @@ export class PollinationsProvider extends BaseAIProvider {
 
       // Build URL with image parameter for image-to-image transformation using Kontext model
       const params = new URLSearchParams({
-        width: '1024',
-        height: '1024',
+        width: AI_CONFIG.DEFAULT_IMAGE_WIDTH.toString(),
+        height: AI_CONFIG.DEFAULT_IMAGE_HEIGHT.toString(),
         model: 'kontext', // Kontext model for image-to-image transformation
         image: request.inputImageUrl // Input image URL for transformation
       });
@@ -93,8 +110,8 @@ export class PollinationsProvider extends BaseAIProvider {
       console.log(`🔗 Full Pollinations URL: ${imageUrl}`);
       console.log(`🎯 Parameters sent:`, {
         prompt: enhancedPrompt,
-        width: '1024',
-        height: '1024',
+        width: AI_CONFIG.DEFAULT_IMAGE_WIDTH,
+        height: AI_CONFIG.DEFAULT_IMAGE_HEIGHT,
         model: 'kontext',
         inputImageUrl: request.inputImageUrl
       });
@@ -213,7 +230,7 @@ export class PollinationsProvider extends BaseAIProvider {
       const response = await fetch(testUrl, {
         method: "GET",
         headers,
-        // timeout: 10000, // 10 second timeout for health check
+        // Note: Using signal for timeout would require AbortController
       });
 
       const available = response.ok;

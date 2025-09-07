@@ -1,28 +1,106 @@
-import { useState } from "react";
+import { useState, useReducer } from "react";
 import { styleManager } from "../../utils/styleManager";
+import { AI_CONFIG, ERROR_MESSAGES } from "../../lib/config/constants";
+
+// Reducer for generation state management to prevent race conditions
+type GenerationState = {
+  isGenerating: boolean;
+  progress: number;
+  error: string | null;
+  provider: string | null;
+  currentStep: Step;
+  resultImageUrl: string | null;
+};
+
+type GenerationAction = 
+  | { type: 'START_GENERATION' }
+  | { type: 'UPDATE_PROGRESS'; progress: number }
+  | { type: 'GENERATION_SUCCESS'; resultImageUrl: string; provider: string }
+  | { type: 'GENERATION_ERROR'; error: string }
+  | { type: 'RESET_GENERATION' }
+  | { type: 'SET_STEP'; step: Step };
+
+function generationReducer(state: GenerationState, action: GenerationAction): GenerationState {
+  switch (action.type) {
+    case 'START_GENERATION':
+      return {
+        ...state,
+        isGenerating: true,
+        progress: 0,
+        error: null,
+        provider: null,
+        currentStep: 'generating',
+      };
+    case 'UPDATE_PROGRESS':
+      return {
+        ...state,
+        progress: action.progress,
+      };
+    case 'GENERATION_SUCCESS':
+      return {
+        ...state,
+        isGenerating: false,
+        progress: 100,
+        error: null,
+        provider: action.provider,
+        currentStep: 'result',
+        resultImageUrl: action.resultImageUrl,
+      };
+    case 'GENERATION_ERROR':
+      return {
+        ...state,
+        isGenerating: false,
+        progress: 0,
+        error: action.error,
+        currentStep: 'styleSelect',
+      };
+    case 'RESET_GENERATION':
+      return {
+        ...state,
+        isGenerating: false,
+        progress: 0,
+        error: null,
+        provider: null,
+        currentStep: 'styleSelect',
+        resultImageUrl: null,
+      };
+    case 'SET_STEP':
+      return {
+        ...state,
+        currentStep: action.step,
+      };
+    default:
+      return state;
+  }
+}
 
 export type Step = "upload" | "styleSelect" | "generating" | "result";
 
 export function useImageGeneration() {
-  const [currentStep, setCurrentStep] = useState<Step>("upload");
+  // Use reducer for generation state to prevent race conditions
+  const [generationState, dispatchGeneration] = useReducer(generationReducer, {
+    isGenerating: false,
+    progress: 0,
+    error: null,
+    provider: null,
+    currentStep: 'upload',
+    resultImageUrl: null,
+  });
+
+  // Other state that doesn't need the reducer
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
   const [selectedStyle, setSelectedStyle] = useState<string | null>(null);
   const [customPrompt, setCustomPrompt] = useState<string>("");
-  const [generationProgress, setGenerationProgress] = useState<number>(0);
-  const [resultImageUrl, setResultImageUrl] = useState<string | null>(null);
   const [dailyUsage, setDailyUsage] = useState<number>(2);
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState<boolean>(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
-  const [isGenerating, setIsGenerating] = useState<boolean>(false);
-  const [generationError, setGenerationError] = useState<string | null>(null);
-  const [generationProvider, setGenerationProvider] = useState<string | null>(null);
 
   const handleFileUpload = async (file: File) => {
-    if (file.size > 5 * 1024 * 1024) {
-      alert("File size too large");
+    if (file.size > AI_CONFIG.MAX_FILE_SIZE) {
+      setUploadError(ERROR_MESSAGES.FILE_TOO_LARGE);
       return;
     }
 
@@ -47,21 +125,19 @@ export function useImageGeneration() {
         setUploadedFile(file);
         setSessionId(data.data.sessionId);
         setUploadedImageUrl(data.data.fileUrl);
-        setCurrentStep("styleSelect");
+        dispatchGeneration({ type: 'SET_STEP', step: 'styleSelect' });
 
         if (data.data.usage) {
           setDailyUsage(data.data.usage.remaining_generations || 5);
         }
       } else {
         console.error("❌ Upload failed:", data.error);
-        setUploadError(data.error);
-        alert(`Upload failed: ${data.error}`);
+        setUploadError(data.error || ERROR_MESSAGES.UPLOAD_FAILED);
       }
     } catch (error) {
       console.error("❌ Upload error:", error);
-      const errorMessage = error instanceof Error ? error.message : "Upload failed";
+      const errorMessage = error instanceof Error ? error.message : ERROR_MESSAGES.UPLOAD_FAILED;
       setUploadError(errorMessage);
-      alert(`Upload error: ${errorMessage}`);
     } finally {
       setIsUploading(false);
     }
@@ -70,15 +146,11 @@ export function useImageGeneration() {
   const handleGenerate = async () => {
     if (!selectedStyle || !sessionId) return;
 
-    setCurrentStep("generating");
-    setGenerationProgress(0);
-    setIsGenerating(true);
-    setGenerationError(null);
-    setGenerationProvider(null);
+    dispatchGeneration({ type: 'START_GENERATION' });
 
     try {
       console.log(`🎨 Starting AI generation for style: ${selectedStyle}`);
-      setGenerationProgress(10);
+      dispatchGeneration({ type: 'UPDATE_PROGRESS', progress: 10 });
 
       // Check if it's a custom style and get the custom prompt
       const isCustomStyle = selectedStyle.startsWith('custom-');
@@ -102,66 +174,62 @@ export function useImageGeneration() {
       });
 
       const data = await response.json();
-      setGenerationProgress(70);
+      dispatchGeneration({ type: 'UPDATE_PROGRESS', progress: 70 });
 
       if (data.success) {
         console.log("✅ AI generation successful:", data.data);
-        setGenerationProgress(100);
-        setResultImageUrl(data.data.generatedImageUrl);
-        setGenerationProvider(data.data.provider);
-        setCurrentStep("result");
+        dispatchGeneration({ 
+          type: 'GENERATION_SUCCESS', 
+          resultImageUrl: data.data.generatedImageUrl, 
+          provider: data.data.provider 
+        });
         setDailyUsage((prev) => prev + 1);
         console.log(`🎉 Generation completed with ${data.data.provider} in ${data.data.processingTimeMs}ms`);
       } else {
         console.error("❌ AI generation failed:", data.error);
-        setGenerationError(data.error);
-        setCurrentStep("styleSelect");
-        setGenerationProgress(0);
+        dispatchGeneration({ 
+          type: 'GENERATION_ERROR', 
+          error: data.error || ERROR_MESSAGES.GENERATION_FAILED 
+        });
       }
     } catch (error) {
       console.error("❌ Generation error:", error);
-      const errorMessage = error instanceof Error ? error.message : "Generation failed";
-      setGenerationError(errorMessage);
-      setCurrentStep("styleSelect");
-      setGenerationProgress(0);
-    } finally {
-      setIsGenerating(false);
+      const errorMessage = error instanceof Error ? error.message : ERROR_MESSAGES.GENERATION_FAILED;
+      dispatchGeneration({ type: 'GENERATION_ERROR', error: errorMessage });
     }
   };
 
   const handleReset = () => {
-    setCurrentStep("upload");
+    dispatchGeneration({ type: 'SET_STEP', step: 'upload' });
     setUploadedFile(null);
     setUploadedImageUrl(null);
     setSelectedStyle(null);
     setCustomPrompt("");
-    setGenerationProgress(0);
-    setResultImageUrl(null);
     setSessionId(null);
     setIsUploading(false);
     setUploadError(null);
-    setIsGenerating(false);
-    setGenerationError(null);
-    setGenerationProvider(null);
   };
 
   const handleRegenerate = () => {
-    setCurrentStep("styleSelect");
-    setGenerationProgress(0);
-    setResultImageUrl(null);
+    dispatchGeneration({ type: 'RESET_GENERATION' });
   };
 
   return {
-    // State
-    currentStep,
+    // State from reducer
+    currentStep: generationState.currentStep,
+    generationProgress: generationState.progress,
+    resultImageUrl: generationState.resultImageUrl,
+    isGenerating: generationState.isGenerating,
+    generationError: generationState.error,
+    generationProvider: generationState.provider,
+    
+    // Other state
     uploadedFile,
     uploadedImageUrl,
     selectedStyle,
     setSelectedStyle,
     customPrompt,
     setCustomPrompt,
-    generationProgress,
-    resultImageUrl,
     dailyUsage,
     isDragging,
     setIsDragging,
@@ -169,9 +237,6 @@ export function useImageGeneration() {
     isUploading,
     uploadError,
     setUploadError,
-    isGenerating,
-    generationError,
-    generationProvider,
     
     // Actions
     handleFileUpload,

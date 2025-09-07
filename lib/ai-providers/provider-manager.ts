@@ -282,10 +282,19 @@ export class AIProviderManager {
   }> {
     const selection = await this.selectProvider(request, options);
     
+    if (!selection.provider) {
+      throw new Error("No suitable provider found");
+    }
+    
+    const config = selection.provider.getConfig();
+    if (!config || !config.tier) {
+      throw new Error("Provider configuration is invalid");
+    }
+    
     return {
       estimatedCost: selection.estimatedCost,
       provider: selection.provider.providerName,
-      tier: selection.provider.getConfig().tier.name
+      tier: config.tier.name
     };
   }
 

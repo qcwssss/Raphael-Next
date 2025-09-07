@@ -3,6 +3,7 @@ import { CloudflareR2Storage } from "../../lib/storage/cloudflare-r2";
 import { aiProviderManager } from "../../lib/ai-providers/provider-manager";
 import { validateEnvironmentVariables } from "../../lib/utils/validation";
 import { styleManager } from "../../utils/styleManager";
+import { AI_CONFIG } from "../../lib/config/constants";
 
 const storage = new CloudflareR2Storage();
 
@@ -142,8 +143,8 @@ export default async function handler(
       sessionId
     }, {
       preferredTier: 'free', // Always use free tier for now
-      maxCost: 0.01, // Max $0.01 per generation
-      maxTimeSeconds: 120, // 2 minutes max
+      maxCost: AI_CONFIG.MAX_COST_PER_GENERATION,
+      maxTimeSeconds: AI_CONFIG.MAX_GENERATION_TIME_SECONDS,
       fallbackEnabled: true
     });
 
