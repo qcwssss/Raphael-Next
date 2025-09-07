@@ -1,0 +1,75 @@
+{
+  "predefinedStyles": [
+    {
+      "id": "ghibli",
+      "emoji": "🌟",
+      "enabled": true,
+      "category": "anime",
+      "popularity": 5,
+      "prompt": "Studio Ghibli anime style, hand-drawn animation, soft watercolor palette, dreamy atmosphere"
+    },
+    {
+      "id": "dragonball", 
+      "emoji": "🐉",
+      "enabled": true,
+      "category": "anime", 
+      "popularity": 4,
+      "prompt": "Dragon Ball anime style, Akira Toriyama art, dynamic poses, vibrant colors"
+    },
+    {
+      "id": "pixel",
+      "emoji": "🎮", 
+      "enabled": true,
+      "category": "gaming",
+      "popularity": 4,
+      "prompt": "16-bit pixel art style, retro gaming graphics, crisp pixels, limited palette"
+    },
+    {
+      "id": "oil",
+      "emoji": "🎨",
+      "enabled": true, 
+      "category": "classical",
+      "popularity": 3,
+      "prompt": "Classical oil painting style, Renaissance technique, rich brushstrokes, painterly texture"
+    },
+    {
+      "id": "cartoon",
+      "emoji": "🎪",
+      "enabled": true,
+      "category": "cartoon", 
+      "popularity": 3,
+      "prompt": "Western cartoon style, bold outlines, bright colors, simplified character design"
+    },
+    {
+      "id": "cyberpunk",
+      "emoji": "🤖",
+      "enabled": false,
+      "category": "futuristic",
+      "popularity": 3,
+      "prompt": "Cyberpunk aesthetic, neon lights, dark atmosphere, futuristic elements"
+    },
+    {
+      "id": "watercolor",
+      "emoji": "💧",
+      "enabled": false,
+      "category": "artistic",
+      "popularity": 2,
+      "prompt": "Watercolor painting style, soft blending, transparent layers, artistic flow"
+    }
+  ],
+  "customStyleConfig": {
+    "enabled": true,
+    "maxPromptLength": 200,
+    "allowedCategories": ["custom"],
+    "defaultEmoji": "✨"
+  },
+  "categories": {
+    "anime": "Anime & Manga",
+    "gaming": "Gaming",
+    "classical": "Classical Art",
+    "cartoon": "Cartoon",
+    "futuristic": "Futuristic",
+    "artistic": "Artistic",
+    "custom": "Custom Style"
+  }
+}

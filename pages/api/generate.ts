@@ -2,6 +2,7 @@ import { NextApiRequest, NextApiResponse } from "next";
 import { CloudflareR2Storage } from "../../lib/storage/cloudflare-r2";
 import { aiProviderManager } from "../../lib/ai-providers/provider-manager";
 import { validateEnvironmentVariables } from "../../lib/utils/validation";
+import { styleManager } from "../../utils/styleManager";
 
 const storage = new CloudflareR2Storage();
 
@@ -9,6 +10,7 @@ interface GenerateRequest {
   sessionId: string;
   style: string;
   customPrompt?: string;
+  customStylePrompt?: string; // For custom styles
   inputFileName?: string;
 }
 
@@ -54,7 +56,7 @@ export default async function handler(
     }
 
     // Validate request body
-    const { sessionId, style, customPrompt, inputFileName = 'input.jpg' }: GenerateRequest = req.body;
+    const { sessionId, style, customPrompt, customStylePrompt, inputFileName = 'input.jpg' }: GenerateRequest = req.body;
 
     if (!sessionId) {
       return res.status(400).json({
@@ -70,12 +72,20 @@ export default async function handler(
       });
     }
 
-    // Validate style is supported
-    const supportedStyles = ['ghibli', 'dragonball', 'pixel', 'oil', 'cartoon'];
-    if (!supportedStyles.includes(style)) {
+    // Validate style: either predefined or custom
+    const isCustomStyle = style.startsWith('custom-');
+    if (!isCustomStyle) {
+      const supportedStyles = ['ghibli', 'dragonball', 'pixel', 'oil', 'cartoon'];
+      if (!supportedStyles.includes(style)) {
+        return res.status(400).json({
+          success: false,
+          error: `Unsupported style: ${style}. Supported styles: ${supportedStyles.join(', ')}`
+        });
+      }
+    } else if (!customStylePrompt) {
       return res.status(400).json({
         success: false,
-        error: `Unsupported style: ${style}. Supported styles: ${supportedStyles.join(', ')}`
+        error: "Custom style prompt is required for custom styles"
       });
     }
 
@@ -106,11 +116,19 @@ export default async function handler(
       });
     }
 
+    // For custom styles, use the custom prompt as the style
+    const effectiveStyle = isCustomStyle ? 'custom' : style;
+    const effectivePrompt = isCustomStyle 
+      ? (customPrompt ? `${customStylePrompt}, ${customPrompt}` : customStylePrompt)
+      : customPrompt;
+
+    console.log(`🎨 Using style: ${effectiveStyle}, prompt: ${effectivePrompt?.substring(0, 100)}...`);
+
     // Estimate cost before generation
     const costEstimate = await aiProviderManager.estimateCost({
       inputImageUrl,
-      style,
-      customPrompt,
+      style: effectiveStyle,
+      customPrompt: effectivePrompt,
       sessionId
     });
 
@@ -119,8 +137,8 @@ export default async function handler(
     // Generate the image
     const generationResult = await aiProviderManager.generateImage({
       inputImageUrl,
-      style,
-      customPrompt,
+      style: effectiveStyle,
+      customPrompt: effectivePrompt,
       sessionId
     }, {
       preferredTier: 'free', // Always use free tier for now

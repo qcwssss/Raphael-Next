@@ -66,6 +66,11 @@ export abstract class BaseAIProvider {
       'cartoon': 'cartoon illustration style, vibrant colors, simplified forms, playful character design'
     };
 
+    // For custom styles, the customPrompt IS the style description
+    if (style === 'custom') {
+      return customPrompt || 'artistic style transformation, high quality, detailed';
+    }
+
     const basePrompt = stylePrompts[style] || 'artistic style transformation';
     
     if (customPrompt) {
@@ -79,6 +84,10 @@ export abstract class BaseAIProvider {
    * Validate if the request is supported by this provider
    */
   isSupported(request: AIGenerationRequest): boolean {
+    // All providers should support custom styles
+    if (request.style === 'custom') {
+      return true;
+    }
     return this.supportedStyles.includes(request.style);
   }
 
