@@ -180,10 +180,10 @@ export default function TextToImageGenerator({
           <button
             onClick={onGenerate}
             disabled={isGenerating || !prompt.trim()}
-            className={`flex-1 px-6 py-3 rounded-lg font-medium transition-colors ${
+            className={`flex-1 px-6 py-3 rounded-lg font-medium transition-all duration-300 ${
               isGenerating || !prompt.trim()
                 ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
-                : 'bg-amber-600 hover:bg-amber-700 text-white'
+                : 'bg-gradient-primary hover:shadow-glow transform hover:scale-105 text-white'
             }`}
           >
             {isGenerating ? (
