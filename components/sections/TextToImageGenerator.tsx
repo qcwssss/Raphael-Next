@@ -33,6 +33,8 @@ export default function TextToImageGenerator({
   isGenerating,
   t,
 }: TextToImageGeneratorProps) {
+  const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
+  
   const handleOptionToggle = (option: keyof GenerationOptions) => {
     setSelectedOptions({
       ...selectedOptions,
@@ -60,105 +62,131 @@ export default function TextToImageGenerator({
           </div>
         </div>
 
-        {/* Clean Description Prompt */}
+        {/* Enhanced Input Area with Options Inside */}
         <div className="mb-8">
-          <label className="block text-lg font-medium text-gray-300 mb-4">
-            Description prompt
-          </label>
-          <textarea
-            value={prompt}
-            onChange={handlePromptChange}
-            placeholder="What do you want to see?"
-            className="w-full h-32 p-4 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white placeholder-gray-400 resize-none text-base leading-relaxed"
-            disabled={isGenerating}
-          />
-        </div>
-
-        {/* Clean Options Row 1 */}
-        <div className="flex flex-wrap items-center gap-6 mb-6">
-          <label className="flex items-center cursor-pointer">
-            <input
-              type="checkbox"
-              checked={selectedOptions.squareAspect}
-              onChange={() => handleOptionToggle('squareAspect')}
-              className="w-4 h-4 text-blue-600 bg-gray-700 border-gray-500 rounded focus:ring-blue-500 focus:ring-2"
+          <div className="bg-gray-700 border border-gray-600 rounded-lg p-4 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent">
+            <label className="block text-sm font-medium text-gray-300 mb-3">
+              Description prompt
+            </label>
+            <textarea
+              value={prompt}
+              onChange={handlePromptChange}
+              placeholder="What do you want to see?"
+              className="w-full h-24 p-0 bg-transparent border-0 text-white placeholder-gray-400 resize-none text-base leading-relaxed focus:outline-none focus:ring-0"
               disabled={isGenerating}
             />
-            <span className="ml-2 text-gray-300 font-medium">Square Aspect</span>
-          </label>
+            
+            {/* Advanced Options Toggle */}
+            <div className="mt-4 pt-3 border-t border-gray-600">
+              <button
+                onClick={() => setShowAdvancedOptions(!showAdvancedOptions)}
+                className="flex items-center gap-2 text-sm text-gray-400 hover:text-gray-300 transition-colors"
+                disabled={isGenerating}
+              >
+                <svg 
+                  className={`w-4 h-4 transition-transform ${showAdvancedOptions ? 'rotate-180' : ''}`}
+                  fill="none" 
+                  stroke="currentColor" 
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+                Advanced Options
+              </button>
+              
+              {/* Collapsible Advanced Options */}
+              {showAdvancedOptions && (
+                <div className="mt-4 space-y-4">
+                  {/* First Row of Options */}
+                  <div className="flex flex-wrap items-center gap-4">
+                    <label className="flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={selectedOptions.squareAspect}
+                        onChange={() => handleOptionToggle('squareAspect')}
+                        className="w-3 h-3 text-blue-600 bg-gray-600 border-gray-500 rounded focus:ring-blue-500 focus:ring-1"
+                        disabled={isGenerating}
+                      />
+                      <span className="ml-2 text-xs text-gray-300">Square Aspect</span>
+                    </label>
 
-          <button
-            onClick={() => handleOptionToggle('noStyle')}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-              selectedOptions.noStyle
-                ? 'bg-gray-600 text-white'
-                : 'text-gray-400 hover:text-gray-300'
-            }`}
-            disabled={isGenerating}
-          >
-            No Style
-          </button>
+                    <button
+                      onClick={() => handleOptionToggle('noStyle')}
+                      className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
+                        selectedOptions.noStyle
+                          ? 'bg-gray-600 text-white'
+                          : 'text-gray-400 hover:text-gray-300'
+                      }`}
+                      disabled={isGenerating}
+                    >
+                      No Style
+                    </button>
 
-          <button
-            onClick={() => handleOptionToggle('noColor')}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-              selectedOptions.noColor
-                ? 'bg-gray-600 text-white'
-                : 'text-gray-400 hover:text-gray-300'
-            }`}
-            disabled={isGenerating}
-          >
-            No Color
-          </button>
+                    <button
+                      onClick={() => handleOptionToggle('noColor')}
+                      className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
+                        selectedOptions.noColor
+                          ? 'bg-gray-600 text-white'
+                          : 'text-gray-400 hover:text-gray-300'
+                      }`}
+                      disabled={isGenerating}
+                    >
+                      No Color
+                    </button>
 
-          <button
-            onClick={() => handleOptionToggle('noLighting')}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-              selectedOptions.noLighting
-                ? 'bg-gray-600 text-white'
-                : 'text-gray-400 hover:text-gray-300'
-            }`}
-            disabled={isGenerating}
-          >
-            No Lighting
-          </button>
+                    <button
+                      onClick={() => handleOptionToggle('noLighting')}
+                      className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
+                        selectedOptions.noLighting
+                          ? 'bg-gray-600 text-white'
+                          : 'text-gray-400 hover:text-gray-300'
+                      }`}
+                      disabled={isGenerating}
+                    >
+                      No Lighting
+                    </button>
 
-          <button
-            onClick={() => handleOptionToggle('noComposition')}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-              selectedOptions.noComposition
-                ? 'bg-gray-600 text-white'
-                : 'text-gray-400 hover:text-gray-300'
-            }`}
-            disabled={isGenerating}
-          >
-            No Composition
-          </button>
-        </div>
+                    <button
+                      onClick={() => handleOptionToggle('noComposition')}
+                      className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
+                        selectedOptions.noComposition
+                          ? 'bg-gray-600 text-white'
+                          : 'text-gray-400 hover:text-gray-300'
+                      }`}
+                      disabled={isGenerating}
+                    >
+                      No Composition
+                    </button>
+                  </div>
 
-        {/* Clean Options Row 2 */}
-        <div className="flex items-center gap-8 mb-8">
-          <label className="flex items-center cursor-pointer">
-            <input
-              type="radio"
-              checked={selectedOptions.negativePrompt}
-              onChange={() => handleOptionToggle('negativePrompt')}
-              className="w-4 h-4 text-blue-600 bg-gray-700 border-gray-500 focus:ring-blue-500 focus:ring-2"
-              disabled={isGenerating}
-            />
-            <span className="ml-2 text-gray-300 font-medium">Negative Prompt</span>
-          </label>
+                  {/* Second Row of Options */}
+                  <div className="flex items-center gap-6">
+                    <label className="flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={selectedOptions.negativePrompt}
+                        onChange={() => handleOptionToggle('negativePrompt')}
+                        className="w-3 h-3 text-blue-600 bg-gray-600 border-gray-500 rounded focus:ring-blue-500 focus:ring-1"
+                        disabled={isGenerating}
+                      />
+                      <span className="ml-2 text-xs text-gray-300">Negative Prompt</span>
+                    </label>
 
-          <label className="flex items-center cursor-pointer">
-            <input
-              type="radio"
-              checked={selectedOptions.highQuality}
-              onChange={() => handleOptionToggle('highQuality')}
-              className="w-4 h-4 text-blue-600 bg-gray-700 border-gray-500 focus:ring-blue-500 focus:ring-2"
-              disabled={isGenerating}
-            />
-            <span className="ml-2 text-gray-300 font-medium">High Quality</span>
-          </label>
+                    <label className="flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={selectedOptions.highQuality}
+                        onChange={() => handleOptionToggle('highQuality')}
+                        className="w-3 h-3 text-blue-600 bg-gray-600 border-gray-500 rounded focus:ring-blue-500 focus:ring-1"
+                        disabled={isGenerating}
+                      />
+                      <span className="ml-2 text-xs text-gray-300">High Quality</span>
+                    </label>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* Clean Action Buttons */}
