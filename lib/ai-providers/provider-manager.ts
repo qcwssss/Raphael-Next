@@ -1,4 +1,6 @@
 import { BaseAIProvider, AIGenerationRequest, AIGenerationResponse, AIProviderTier } from './base-provider';
+import { PollinationsProvider } from './pollinations-provider';
+import { HuggingFaceProvider } from './huggingface-provider';
 import { FluxProvider } from './flux-provider';
 import { BFLProvider } from './bfl-provider';
 
@@ -27,16 +29,26 @@ export class AIProviderManager {
 
   private initializeProviders(): void {
     try {
-      // Initialize providers - prioritize direct BFL over Replicate
+      // Initialize providers - prioritize free Pollinations first
       
-      // Try direct Black Forest Labs API first
+      // Pollinations as primary free provider (no API key needed)
+      const pollinationsProvider = new PollinationsProvider();
+      this.providers.push(pollinationsProvider);
+      console.log('✅ Initialized AI provider: pollinations (Free Pollinations.ai)');
+      
+      // HuggingFace as secondary free provider
+      const hfProvider = new HuggingFaceProvider();
+      this.providers.push(hfProvider);
+      console.log('✅ Initialized AI provider: huggingface-img2img (Free HuggingFace)');
+      
+      // BFL as premium provider (requires credits)
       if (process.env.BFL_API_KEY || process.env.BLACK_FOREST_LABS_API_KEY) {
         const bflProvider = new BFLProvider();
         this.providers.push(bflProvider);
         console.log('✅ Initialized AI provider: bfl-flux-schnell (Direct BFL API)');
       }
       
-      // Fallback to Replicate if BFL not available
+      // Fallback to Replicate if needed
       if (process.env.REPLICATE_API_TOKEN) {
         const fluxProvider = new FluxProvider();
         this.providers.push(fluxProvider);
