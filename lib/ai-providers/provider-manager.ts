@@ -1,12 +1,13 @@
-import { BaseAIProvider, AIGenerationRequest, AIGenerationResponse, AIProviderTier } from './base-provider';
-import { PollinationsProvider } from './pollinations-provider';
-import { HuggingFaceProvider } from './huggingface-provider';
-import { FluxProvider } from './flux-provider';
-import { BFLProvider } from './bfl-provider';
-import { AI_CONFIG } from '../config/constants';
-import { HealthCacheEntry, HealthStatus, ProviderMetrics, GenerationMetrics, EnvironmentConfig, ValidationResult } from './interfaces';
-import { validateEnvironment, logEnvironmentStatus } from '../config/env-validation';
-import { withProviderTimeout, CircuitBreaker, debounce } from '../utils/timeout-wrapper';
+import {
+  BaseAIProvider,
+  AIGenerationRequest,
+  AIGenerationResponse,
+  AIProviderTier,
+} from "./base-provider";
+import { PollinationsProvider } from "./pollinations-provider";
+import { HuggingFaceProvider } from "./huggingface-provider";
+import { FluxProvider } from "./flux-provider";
+import { BFLProvider } from "./bfl-provider";
 
 export interface ProviderSelection {
   provider: BaseAIProvider;
@@ -16,7 +17,7 @@ export interface ProviderSelection {
 }
 
 export interface GenerationOptions {
-  preferredTier?: 'free' | 'premium' | 'pro';
+  preferredTier?: "free" | "premium" | "pro";
   maxCost?: number;
   maxTimeSeconds?: number;
   fallbackEnabled?: boolean;
@@ -24,10 +25,9 @@ export interface GenerationOptions {
 
 export class AIProviderManager {
   private providers: BaseAIProvider[] = [];
-  private healthCache: Map<string, HealthCacheEntry> = new Map();
-  private readonly healthCacheTtl = AI_CONFIG.HEALTH_CACHE_TTL_MS;
-  private circuitBreakers: Map<string, CircuitBreaker<any>> = new Map();
-  private activeHealthChecks: Map<string, Promise<HealthStatus>> = new Map();
+  private healthCache: Map<string, { status: any; timestamp: number }> =
+    new Map();
+  private readonly healthCacheTtl = 60000; // 1 minute
 
   constructor() {
     this.initializeProviders();
@@ -35,50 +35,47 @@ export class AIProviderManager {
 
   private initializeProviders(): void {
     try {
-      // Validate environment configuration first
-      const envValidation = validateEnvironment();
-      if (!envValidation.isValid) {
-        console.error('❌ Environment validation failed:', envValidation.errors);
-        throw new Error(`Environment validation failed: ${envValidation.errors.join(', ')}`);
-      }
-      
-      // Log environment status for debugging
-      logEnvironmentStatus();
-      
       // Initialize providers - prioritize free Pollinations first
-      
+
       // Pollinations as primary free provider (no API key needed)
       const pollinationsProvider = new PollinationsProvider();
       this.providers.push(pollinationsProvider);
-      console.log('✅ Initialized AI provider: pollinations (Free Pollinations.ai)');
-      
+      console.log(
+        "✅ Initialized AI provider: pollinations (Free Pollinations.ai)"
+      );
+
       // HuggingFace as secondary free provider
       const hfProvider = new HuggingFaceProvider();
       this.providers.push(hfProvider);
-      console.log('✅ Initialized AI provider: huggingface-img2img (Free HuggingFace)');
-      
+      console.log(
+        "✅ Initialized AI provider: huggingface-img2img (Free HuggingFace)"
+      );
+
       // BFL as premium provider (requires credits)
-      if (process.env.BFL_API_KEY || process.env.BLACK_FOREST_LABS_API_KEY) {
+      if (process.env.BFL_API_KEY) {
         const bflProvider = new BFLProvider();
         this.providers.push(bflProvider);
-        console.log('✅ Initialized AI provider: bfl-flux-schnell (Direct BFL API)');
+        console.log(
+          "✅ Initialized AI provider: bfl-flux-schnell (Direct BFL API)"
+        );
       }
-      
+
       // Fallback to Replicate if needed
       if (process.env.REPLICATE_API_TOKEN) {
         const fluxProvider = new FluxProvider();
         this.providers.push(fluxProvider);
-        console.log('✅ Initialized AI provider: flux-schnell (Replicate)');
+        console.log("✅ Initialized AI provider: flux-schnell (Replicate)");
       }
-      
     } catch (error) {
-      console.error('❌ Failed to initialize AI providers:', error);
+      console.error("❌ Failed to initialize AI providers:", error);
     }
 
     if (this.providers.length === 0) {
-      console.warn('⚠️ No AI providers could be initialized');
+      console.warn("⚠️ No AI providers could be initialized");
     } else {
-      console.log(`🎯 AI Provider Manager initialized with ${this.providers.length} provider(s)`);
+      console.log(
+        `🎯 AI Provider Manager initialized with ${this.providers.length} provider(s)`
+      );
     }
   }
 
@@ -90,16 +87,18 @@ export class AIProviderManager {
     options: GenerationOptions = {}
   ): Promise<ProviderSelection> {
     const {
-      preferredTier = 'free',
+      preferredTier = "free",
       maxCost = 0.01, // Default max cost for free tier
       maxTimeSeconds = 300, // 5 minutes max
-      fallbackEnabled = true
+      fallbackEnabled = true,
     } = options;
 
-    console.log(`🎯 Selecting AI provider for style '${request.style}' with tier preference: ${preferredTier}`);
+    console.log(
+      `🎯 Selecting AI provider for style '${request.style}' with tier preference: ${preferredTier}`
+    );
 
     // Get available providers that support the requested style
-    const supportedProviders = this.providers.filter(provider => 
+    const supportedProviders = this.providers.filter((provider) =>
       provider.isSupported(request)
     );
 
@@ -108,23 +107,29 @@ export class AIProviderManager {
     }
 
     // Check health status for supported providers
-    const healthyProviders: Array<{ provider: BaseAIProvider; health: any }> = [];
-    
+    const healthyProviders: Array<{ provider: BaseAIProvider; health: any }> =
+      [];
+
     for (const provider of supportedProviders) {
       try {
         const health = await this.getProviderHealth(provider);
-        if (health.status === 'healthy') {
+        if (health.status === "healthy") {
           healthyProviders.push({ provider, health });
         } else {
-          console.warn(`⚠️ Provider ${provider.providerName} is ${health.status}: ${health.message}`);
+          console.warn(
+            `⚠️ Provider ${provider.providerName} is ${health.status}: ${health.message}`
+          );
         }
       } catch (error) {
-        console.error(`❌ Health check failed for ${provider.providerName}:`, error);
+        console.error(
+          `❌ Health check failed for ${provider.providerName}:`,
+          error
+        );
       }
     }
 
     if (healthyProviders.length === 0) {
-      throw new Error('No healthy AI providers available');
+      throw new Error("No healthy AI providers available");
     }
 
     // Score and rank providers
@@ -134,14 +139,22 @@ export class AIProviderManager {
       const estimatedTime = config.tier.estimatedSpeedSeconds;
 
       let score = 0;
-      let reason = '';
+      let reason = "";
 
       // Tier preference scoring
       if (config.tier.name === preferredTier) {
         score += 100;
         reason += `Preferred tier (${preferredTier}), `;
       } else {
-        score += Math.max(0, 50 - Math.abs(this.getTierPriority(config.tier.name) - this.getTierPriority(preferredTier)) * 10);
+        score += Math.max(
+          0,
+          50 -
+            Math.abs(
+              this.getTierPriority(config.tier.name) -
+                this.getTierPriority(preferredTier)
+            ) *
+              10
+        );
       }
 
       // Cost constraint scoring
@@ -163,7 +176,7 @@ export class AIProviderManager {
       }
 
       // Provider priority (from config)
-      score += (100 - config.tier.priority * 10);
+      score += 100 - config.tier.priority * 10;
       reason += `Priority: ${config.tier.priority}`;
 
       return {
@@ -171,7 +184,7 @@ export class AIProviderManager {
         score,
         estimatedCost,
         estimatedTime,
-        reason: reason.replace(/, $/, '') // Remove trailing comma
+        reason: reason.replace(/, $/, ""), // Remove trailing comma
       };
     });
 
@@ -179,18 +192,20 @@ export class AIProviderManager {
     scoredProviders.sort((a, b) => b.score - a.score);
 
     const bestProvider = scoredProviders[0];
-    
+
     if (bestProvider.score <= 0 && !fallbackEnabled) {
-      throw new Error('No suitable AI provider found within constraints');
+      throw new Error("No suitable AI provider found within constraints");
     }
 
-    console.log(`🏆 Selected provider: ${bestProvider.provider.providerName} (score: ${bestProvider.score}, cost: $${bestProvider.estimatedCost}, time: ${bestProvider.estimatedTime}s)`);
+    console.log(
+      `🏆 Selected provider: ${bestProvider.provider.providerName} (score: ${bestProvider.score}, cost: $${bestProvider.estimatedCost}, time: ${bestProvider.estimatedTime}s)`
+    );
 
     return {
       provider: bestProvider.provider,
       reason: bestProvider.reason,
       estimatedCost: bestProvider.estimatedCost,
-      estimatedTime: bestProvider.estimatedTime
+      estimatedTime: bestProvider.estimatedTime,
     };
   }
 
@@ -202,49 +217,29 @@ export class AIProviderManager {
     options: GenerationOptions = {}
   ): Promise<AIGenerationResponse> {
     const selection = await this.selectProvider(request, options);
-    
-    console.log(`🎨 Generating image with ${selection.provider.providerName}: ${selection.reason}`);
-    
+
+    console.log(
+      `🎨 Generating image with ${selection.provider.providerName}: ${selection.reason}`
+    );
+
     return await selection.provider.generateImage(request);
   }
 
-  private activeHealthChecks: Map<string, Promise<any>> = new Map();
-
   /**
-   * Get health status for a provider (with caching and race condition prevention)
+   * Get health status for a provider (with caching)
    */
   async getProviderHealth(provider: BaseAIProvider): Promise<any> {
     const cacheKey = provider.providerName;
     const cached = this.healthCache.get(cacheKey);
-    
-    // Return cached result if still valid
+
     if (cached && Date.now() - cached.timestamp < this.healthCacheTtl) {
       return cached.status;
     }
 
-    // Check if there's already an active health check for this provider
-    const activeCheck = this.activeHealthChecks.get(cacheKey);
-    if (activeCheck) {
-      // Wait for the existing check to complete
-      return await activeCheck;
-    }
+    const health = await provider.getHealthStatus();
+    this.healthCache.set(cacheKey, { status: health, timestamp: Date.now() });
 
-    // Start a new health check
-    const healthCheckPromise = this.performHealthCheck(provider, cacheKey);
-    this.activeHealthChecks.set(cacheKey, healthCheckPromise);
-
-    try {
-      const health = await healthCheckPromise;
-      this.healthCache.set(cacheKey, { status: health, timestamp: Date.now() });
-      return health;
-    } finally {
-      // Clean up the active check
-      this.activeHealthChecks.delete(cacheKey);
-    }
-  }
-
-  private async performHealthCheck(provider: BaseAIProvider, cacheKey: string): Promise<any> {
-    return await provider.getHealthStatus();
+    return health;
   }
 
   /**
@@ -256,11 +251,11 @@ export class AIProviderManager {
     supportedStyles: string[];
     isConfigured: boolean;
   }> {
-    return this.providers.map(provider => ({
+    return this.providers.map((provider) => ({
       name: provider.providerName,
       tier: provider.getConfig().tier,
       supportedStyles: provider.supportedStyles,
-      isConfigured: true // If it was initialized, it's configured
+      isConfigured: true, // If it was initialized, it's configured
     }));
   }
 
@@ -285,17 +280,17 @@ export class AIProviderManager {
     for (const provider of this.providers) {
       const health = await this.getProviderHealth(provider);
       const config = provider.getConfig();
-      
-      if (health.status === 'healthy') {
+
+      if (health.status === "healthy") {
         healthyCount++;
-        provider.supportedStyles.forEach(style => allStyles.add(style));
+        provider.supportedStyles.forEach((style) => allStyles.add(style));
       }
 
       providers.push({
         name: provider.providerName,
         status: health.status,
         tier: config.tier.displayName,
-        supportedStyles: provider.supportedStyles
+        supportedStyles: provider.supportedStyles,
       });
     }
 
@@ -303,7 +298,7 @@ export class AIProviderManager {
       totalProviders: this.providers.length,
       healthyProviders: healthyCount,
       availableStyles: Array.from(allStyles),
-      providers
+      providers,
     };
   }
 
@@ -319,28 +314,19 @@ export class AIProviderManager {
     tier: string;
   }> {
     const selection = await this.selectProvider(request, options);
-    
-    if (!selection.provider) {
-      throw new Error("No suitable provider found");
-    }
-    
-    const config = selection.provider.getConfig();
-    if (!config || !config.tier) {
-      throw new Error("Provider configuration is invalid");
-    }
-    
+
     return {
       estimatedCost: selection.estimatedCost,
       provider: selection.provider.providerName,
-      tier: config.tier.name
+      tier: selection.provider.getConfig().tier.name,
     };
   }
 
   private getTierPriority(tier: string): number {
     const priorities = {
-      'free': 1,
-      'premium': 2,
-      'pro': 3
+      free: 1,
+      premium: 2,
+      pro: 3,
     };
     return priorities[tier as keyof typeof priorities] || 999;
   }
@@ -350,7 +336,7 @@ export class AIProviderManager {
    */
   clearHealthCache(): void {
     this.healthCache.clear();
-    console.log('🗑️ Provider health cache cleared');
+    console.log("🗑️ Provider health cache cleared");
   }
 
   /**
@@ -366,14 +352,16 @@ export class AIProviderManager {
    */
   removeProvider(providerName: string): boolean {
     const initialLength = this.providers.length;
-    this.providers = this.providers.filter(p => p.providerName !== providerName);
+    this.providers = this.providers.filter(
+      (p) => p.providerName !== providerName
+    );
     this.healthCache.delete(providerName);
-    
+
     const removed = this.providers.length < initialLength;
     if (removed) {
       console.log(`➖ Removed AI provider: ${providerName}`);
     }
-    
+
     return removed;
   }
 }
