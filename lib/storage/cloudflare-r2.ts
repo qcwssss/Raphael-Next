@@ -5,6 +5,7 @@ import {
   DeleteObjectCommand,
   ListObjectsV2Command,
 } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 export class CloudflareR2Storage {
   private client: S3Client;
@@ -48,6 +49,24 @@ export class CloudflareR2Storage {
     // Return URL through our API proxy for secure access
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
     return `${baseUrl}/api/files/${key}`;
+  }
+
+  async getDirectFileUrl(key: string): Promise<string> {
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL;
+    
+    // In production, use proxy URL (no credentials exposed)
+    if (baseUrl && !baseUrl.includes('localhost')) {
+      return `${baseUrl}/api/files/${key}`;
+    }
+    
+    // In development, use pre-signed URL (necessary for external access)
+    // This is acceptable for development since it's not production data
+    const command = new GetObjectCommand({
+      Bucket: process.env.CLOUDFLARE_R2_BUCKET_NAME,
+      Key: key,
+    });
+
+    return await getSignedUrl(this.client, command, { expiresIn: 1200 }); // 20 minutes
   }
 
   async deleteFile(key: string): Promise<void> {

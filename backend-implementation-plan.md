@@ -41,10 +41,38 @@
 
 - **Frontend**: Existing Next.js app with TypeScript + Tailwind CSS ✅
 - **Backend**: Next.js API Routes (Serverless)
-- **AI Providers**: Multiple providers with smart selection
-- **Storage**: Cloudflare R2 for temporary files
+- **AI Providers**: 4-tier strategy from free ($0.003) to premium ($0.065)
+- **Storage**: Cloudflare R2 for file management ✅
 - **Database**: Supabase for user data and usage tracking
 - **Deployment**: Vercel with edge functions
+
+### AI Model Strategy (2025 Update)
+
+Based on comprehensive market research, we're implementing a 4-tier AI generation strategy:
+
+#### **Tier 1: Free/Onboarding** 
+- **Model**: FLUX.1 [schnell] via Replicate
+- **Cost**: $0.003/image (virtually free for users)
+- **Target**: New users, demos, onboarding
+- **Quality**: Good, fast generation
+
+#### **Tier 2: Standard**
+- **Model**: FLUX.1 [dev] via Replicate  
+- **Cost**: $0.030/image
+- **Target**: Regular users, hobbyists
+- **Quality**: Very good, no watermarks
+
+#### **Tier 3: Premium** 
+- **Model**: Gemini 2.5 Flash Image (Nano-Banana) via NanoBananaAPI
+- **Cost**: $0.020/image (best value!)
+- **Target**: Power users, small businesses
+- **Quality**: High quality, Google's latest model
+
+#### **Tier 4: Professional**
+- **Primary**: FLUX.1 [pro] via Replicate ($0.055)
+- **Fallbacks**: DALL-E 3, Stable Diffusion 3.5 Large
+- **Target**: Professionals, agencies
+- **Quality**: Excellent with multiple provider redundancy
 
 ---
 
@@ -303,9 +331,16 @@ export interface AIProviderCost {
 
 ### **Phase 2: AI Provider Abstraction Layer** (4 steps, 3-4 days)
 
-#### Step 4: AI Service Interface Design
+#### Step 4: AI Service Interface Design (Updated 2025)
 
 **Duration**: 2-3 hours
+
+Our updated strategy implements a 4-tier provider system optimized for cost and quality:
+
+1. **Free Tier**: FLUX.1 [schnell] - $0.003/image
+2. **Standard Tier**: FLUX.1 [dev] - $0.030/image  
+3. **Premium Tier**: Nano-Banana (Gemini 2.5) - $0.020/image
+4. **Professional Tier**: FLUX.1 [pro] - $0.055/image + fallbacks
 
 **Base Provider Interface** (`lib/ai-providers/base-provider.ts`):
 
@@ -332,10 +367,15 @@ export interface GenerationResult {
   };
 }
 
+export type ProviderTier = 'free' | 'standard' | 'premium' | 'professional';
+
 export abstract class BaseAIProvider {
   abstract name: string;
+  abstract tier: ProviderTier;
   abstract costPerGeneration: number;
   abstract maxConcurrentRequests: number;
+  abstract model: string;
+  abstract provider: string;
 
   abstract generateImage(params: GenerationParams): Promise<GenerationResult>;
   abstract isAvailable(): Promise<boolean>;
@@ -345,18 +385,14 @@ export abstract class BaseAIProvider {
   protected buildPrompt(style: string, customPrompt?: string): string {
     const stylePrompts = {
       ghibli: "Studio Ghibli anime style, soft watercolor, dreamy atmosphere",
-      dragonball:
-        "Dragon Ball Z anime style, vibrant colors, dynamic pose, Akira Toriyama art",
-      pixel:
-        "pixel art style, 16-bit, retro gaming aesthetic, vibrant pixelated colors",
+      dragonball: "Dragon Ball Z anime style, vibrant colors, dynamic pose, Akira Toriyama art",
+      pixel: "pixel art style, 16-bit, retro gaming aesthetic, vibrant pixelated colors",
       oil: "oil painting style, classical art, rich textures, Renaissance painting",
       cartoon: "cartoon style, cute, colorful, simple lines, playful",
     };
 
-    const basePrompt =
-      stylePrompts[style as keyof typeof stylePrompts] || stylePrompts.cartoon;
-    const qualityTags =
-      "high quality, detailed, masterpiece, avoid blurry, avoid distorted";
+    const basePrompt = stylePrompts[style as keyof typeof stylePrompts] || stylePrompts.cartoon;
+    const qualityTags = "high quality, detailed, masterpiece, avoid blurry, avoid distorted";
 
     return customPrompt
       ? `${basePrompt}, ${customPrompt}, ${qualityTags}`

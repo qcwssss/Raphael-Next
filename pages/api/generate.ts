@@ -92,10 +92,10 @@ export default async function handler(
       });
     }
 
-    // Get the input file URL through our proxy
-    const inputImageUrl = await storage.getFileUrl(inputFileKey);
+    // Get the direct R2 URL for external AI providers to access
+    const inputImageUrl = await storage.getDirectFileUrl(inputFileKey);
     
-    console.log(`📁 Using input image: ${inputImageUrl}`);
+    console.log(`📁 Using input image (direct R2 URL): ${inputImageUrl}`);
 
     // Check system status and get cost estimate
     const systemStatus = await aiProviderManager.getSystemStatus();

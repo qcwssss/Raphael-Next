@@ -82,35 +82,33 @@ export class PollinationsProvider extends BaseAIProvider {
 
       // Build URL with image parameter for image-to-image transformation using Kontext model
       const params = new URLSearchParams({
-        width: "1024",
-        height: "1024",
-        model: "kontext", // Kontext model for image-to-image transformation
-        image: request.inputImageUrl, // Input image URL for transformation
+        width: '1024',
+        height: '1024',
+        model: 'kontext', // Kontext model for image-to-image transformation
+        image: request.inputImageUrl // Input image URL for transformation
       });
-
-      const imageUrl = `${this.baseUrl}/${encodeURIComponent(
-        enhancedPrompt
-      )}?${params.toString()}`;
-
+      
+      const imageUrl = `${this.baseUrl}/${encodeURIComponent(enhancedPrompt)}?${params.toString()}`;
+      
       console.log(`🔗 Full Pollinations URL: ${imageUrl}`);
       console.log(`🎯 Parameters sent:`, {
         prompt: enhancedPrompt,
-        width: "1024",
-        height: "1024",
-        model: "kontext",
-        inputImageUrl: request.inputImageUrl,
+        width: '1024',
+        height: '1024',
+        model: 'kontext',
+        inputImageUrl: request.inputImageUrl
       });
-
+      
       // Log the raw parameters for debugging
       console.log(`🔧 Raw URLSearchParams:`, params.toString());
-
+      
       const headers: Record<string, string> = {
-        "User-Agent": "RaphaelNext/1.0",
+        'User-Agent': 'RaphaelNext/1.0',
       };
-
+      
       // Add API key if available
       if (this.apiKey) {
-        headers["Authorization"] = `Bearer ${this.apiKey}`;
+        headers['Authorization'] = `Bearer ${this.apiKey}`;
         console.log(`🔑 Using API key: [REDACTED]`);
       } else {
         console.log(`⚠️ No API key found - using anonymous access`);
@@ -119,23 +117,32 @@ export class PollinationsProvider extends BaseAIProvider {
       console.log(`🌐 Making request to: ${imageUrl}`);
 
       const response = await fetch(imageUrl, {
-        method: "GET",
+        method: 'GET',
         headers,
       });
 
-      console.log(
-        `📊 Response status: ${response.status} ${response.statusText}`
-      );
+      console.log(`📊 Response status: ${response.status} ${response.statusText}`);
 
       if (!response.ok) {
+        // Try to get detailed error message from response body
+        let errorDetails = '';
+        try {
+          const errorText = await response.text();
+          console.error(`❌ Pollinations API error body:`, errorText);
+          errorDetails = errorText;
+        } catch (e) {
+          console.error(`❌ Could not read error response body`);
+        }
+
         console.error(
           `❌ Pollinations API error (${response.status}): ${response.statusText}`
         );
+        
         return {
           success: false,
-          error: `Pollinations API error: ${response.status} ${response.statusText}`,
+          error: `Pollinations API error: ${response.status} ${response.statusText} - ${errorDetails}`,
           provider: this.providerName,
-          model: "flux",
+          model: inputImageBuffer ? "kontext" : "flux",
           processingTimeMs: Date.now() - startTime,
           cost: 0,
         };
