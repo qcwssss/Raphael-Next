@@ -90,7 +90,7 @@ export class BFLProvider extends BaseAIProvider {
 
       console.log(`📤 Submitting to BFL API: ${prompt.substring(0, 100)}...`);
 
-      const response = await fetch(`${this.baseUrl}/flux-schnell`, {
+      const response = await fetch(`${this.baseUrl}/flux-pro-1.1`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
