@@ -58,26 +58,42 @@ export abstract class BaseAIProvider {
    * Build the prompt for the specific style
    */
   protected buildPrompt(style: string, customPrompt?: string): string {
-    const stylePrompts: Record<string, string> = {
-      'ghibli': 'in the style of Studio Ghibli animation, hand-drawn, soft colors, dreamy atmosphere',
-      'dragonball': 'in the style of Dragon Ball anime, dynamic poses, bright colors, manga style',
-      'pixel': 'pixel art style, 16-bit graphics, retro gaming aesthetic, crisp pixels',
-      'oil': 'oil painting style, classical art technique, rich textures, painterly brushstrokes',
-      'cartoon': 'cartoon illustration style, vibrant colors, simplified forms, playful character design'
-    };
-
     // For custom styles, the customPrompt IS the style description
     if (style === 'custom') {
       return customPrompt || 'artistic style transformation, high quality, detailed';
     }
 
-    const basePrompt = stylePrompts[style] || 'artistic style transformation';
+    // Load style prompts from configuration
+    const basePrompt = this.getStylePrompt(style);
     
     if (customPrompt) {
       return `${customPrompt}, ${basePrompt}`;
     }
 
     return `Transform this image ${basePrompt}, high quality, detailed`;
+  }
+
+  /**
+   * Get style prompt from configuration
+   */
+  private getStylePrompt(styleId: string): string {
+    try {
+      // Import the styles configuration
+      const stylesConfig = require('../../config/styles.json');
+      
+      // Find the style in predefined styles
+      const style = stylesConfig.predefinedStyles.find((s: any) => s.id === styleId);
+      
+      if (style && style.prompt) {
+        return style.prompt;
+      }
+      
+      // Fallback for unknown styles
+      return 'artistic style transformation';
+    } catch (error) {
+      console.warn(`Failed to load style prompt for ${styleId}:`, error);
+      return 'artistic style transformation';
+    }
   }
 
   /**
