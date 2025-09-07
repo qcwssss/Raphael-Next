@@ -1,5 +1,9 @@
 // Jest setup file for additional test configuration
 
+// Import jest-dom matchers for better assertions
+// Note: You may need to install @testing-library/jest-dom
+// import '@testing-library/jest-dom';
+
 // Mock console methods to reduce noise in tests
 const originalError = console.error;
 const originalWarn = console.warn;

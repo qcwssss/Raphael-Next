@@ -4,7 +4,7 @@ const { compilerOptions } = require('./tsconfig.json');
 /** @type {import('jest').Config} */
 module.exports = {
   preset: 'ts-jest',
-  testEnvironment: 'node',
+  testEnvironment: 'jsdom',
   
   // TypeScript configuration
   transform: {
@@ -35,9 +35,12 @@ module.exports = {
   collectCoverageFrom: [
     'lib/**/*.{ts,tsx}',
     'pages/api/**/*.{ts,tsx}',
+    'components/**/*.{ts,tsx}',
     '!lib/**/*.d.ts',
     '!lib/utils/test-storage.ts', // Exclude development test utils
     '!node_modules/**',
+    '!**/__tests__/**',
+    '!**/coverage/**',
   ],
   
   coverageDirectory: 'coverage',
